@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "xrml-local-research": {
+      "command": "uv",
+      "args": ["run", "python", "tools/local_research_mcp_server.py"],
+      "cwd": ".",
+      "trust": true,
+      "timeout": 30000
+    }
+  }
+}

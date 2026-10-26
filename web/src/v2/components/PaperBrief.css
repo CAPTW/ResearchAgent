@@ -1,0 +1,22 @@
+.paper-brief {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.65;
+}
+.paper-brief h5 { font-size: 1.1rem; margin: 1rem 0 .5rem; }
+.paper-brief h6 { font-size: .95rem; margin: 0 0 .4rem; }
+.paper-brief p { margin: .4rem 0; }
+.paper-brief-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 1rem 1.5rem;
+  margin: 1rem 0;
+}
+.paper-brief-fields > section { min-width: 0; }
+.paper-brief-fields ul { margin: .4rem 0; padding-inline-start: 1.3rem; }
+.paper-brief-scope { border-inline-start: 3px solid currentColor; padding-inline-start: .8rem; }
+.paper-brief details { margin: .6rem 0; }
+.paper-brief summary { cursor: pointer; }
+.paper-brief :is(summary, pre):focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.paper-brief pre { max-height: 24rem; overflow: auto; }
+.paper-brief-locator { font-size: .9rem; }

@@ -1,0 +1,17 @@
+{
+  "scheduleName": "weekday-am",
+  "storageRoot": "C:\\XRMLData\\workspace",
+  "resultRoot": "C:\\XRMLData\\schedule-results\\weekday-am",
+  "ledgerPath": "C:\\XRMLData\\schedule-ledger\\weekday-am.jsonl",
+  "delaySecondsBetweenTopics": 15,
+  "continueOnError": true,
+  "forceUserScopeBootstrap": false,
+  "noRunnerFallback": false,
+  "topics": [
+    {
+      "topic": "Gaussian avatars in XR",
+      "profileName": "Gaussian XR",
+      "enabled": true
+    }
+  ]
+}

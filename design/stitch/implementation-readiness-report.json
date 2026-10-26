@@ -1,0 +1,118 @@
+{
+  "generated_at": "2026-04-21T16:00:00+09:00",
+  "source_files": [
+    "design/stitch/final-stitch-handoff.json",
+    "design/stitch/final-layout-map.json",
+    "design/stitch/final-layout-map.md",
+    "design/stitch/final-stitch-implementation-notes.md",
+    "design/stitch/final-handoff-completeness.json",
+    "design/stitch/final-handoff-completeness.md",
+    "design/stitch/manual/stitch-wide-1920.png",
+    "design/stitch/manual/stitch-wide-1440.png",
+    "design/stitch/manual/stitch-narrow.png",
+    "design/stitch/manual/design-dna.md",
+    "design/stitch/manual/component-hierarchy.json",
+    "design/stitch/manual/tokens-extended.json",
+    "design/stitch/manual/implementation-notes.md"
+  ],
+  "chosen_layout_structure": "research cockpit (sidebar + top command bar + main workbench + right inspector)",
+  "token_mapping_plan": {
+    "source_map": {
+      "stitch_background": "design/stitch/stitch-tokens.json tokens.colors.background",
+      "stitch_surface": "design/stitch/stitch-tokens.json tokens.colors.surface",
+      "stitch_surface_container": "design/stitch/stitch-tokens.json tokens.colors.surface_container",
+      "stitch_surface_variant": "design/stitch/stitch-tokens.json tokens.colors.surface_variant",
+      "stitch_on_surface": "design/stitch/stitch-tokens.json tokens.colors.on_surface",
+      "stitch_on_surface_variant": "design/stitch/stitch-tokens.json tokens.colors.on_surface_variant",
+      "stitch_primary": "design/stitch/stitch-tokens.json tokens.colors.primary",
+      "stitch_primary_container": "design/stitch/stitch-tokens.json tokens.colors.primary_container",
+      "stitch_secondary": "design/stitch/stitch-tokens.json tokens.colors.secondary",
+      "stitch_secondary_container": "design/stitch/stitch-tokens.json tokens.colors.secondary_container",
+      "stitch_tertiary": "design/stitch/stitch-tokens.json tokens.colors.tertiary",
+      "stitch_outline": "design/stitch/stitch-tokens.json tokens.colors.outline",
+      "stitch_shadows": "design/stitch/manual/tokens-extended.json tokens.shadows.ambient",
+      "stitch_backdrop_blur": "design/stitch/manual/tokens-extended.json tokens.shadows.backdrop-blur",
+      "stitch_spacing_scale": "design/stitch/manual/tokens-extended.json tokens.spacing.scale",
+      "stitch_radius_sm": "design/stitch/manual/tokens-extended.json tokens.radius.sm",
+      "stitch_radius_md": "design/stitch/manual/tokens-extended.json tokens.radius.md",
+      "stitch_font_family": "design/stitch/manual/tokens-extended.json tokens.typography.family",
+      "stitch_typography_display_sm": "design/stitch/manual/tokens-extended.json tokens.typography.scales.display-sm",
+      "stitch_typography_headline_sm": "design/stitch/manual/tokens-extended.json tokens.typography.scales.headline-sm",
+      "stitch_typography_title_md": "design/stitch/manual/tokens-extended.json tokens.typography.scales.title-md",
+      "stitch_typography_label_sm": "design/stitch/manual/tokens-extended.json tokens.typography.scales.label-sm"
+    },
+    "fallback_defaults": {
+      "typography": "existing web/global typography variables",
+      "spacing": "existing spacing + CSS clamp for responsive utility classes"
+    },
+    "implementation_notes": [
+      "Preserve existing CSS variables in tokens.css for backward compatibility.",
+      "Introduce Stitch-derived aliases as shared semantic tokens first, then map dashboard classes to those aliases."
+    ]
+  },
+  "components_to_create_or_update": [
+    {
+      "path": "web/src/components/dashboard/AppSidebar.tsx",
+      "status": "updated"
+    },
+    {
+      "path": "web/src/components/dashboard/CommandBar.tsx",
+      "status": "updated"
+    },
+    {
+      "path": "web/src/components/dashboard/StatusStrip.tsx",
+      "status": "updated"
+    },
+    {
+      "path": "web/src/components/dashboard/RunTable.tsx",
+      "status": "created"
+    },
+    {
+      "path": "web/src/components/dashboard/TopicPortfolioPanel.tsx",
+      "status": "created"
+    },
+    {
+      "path": "web/src/components/dashboard/ScheduleStatusPanel.tsx",
+      "status": "created"
+    },
+    {
+      "path": "web/src/components/dashboard/RightInspector.tsx",
+      "status": "created"
+    },
+    {
+      "path": "web/src/components/dashboard/ProfileDrawer.tsx",
+      "status": "created"
+    },
+    {
+      "path": "web/src/screens/DashboardScreen.tsx",
+      "status": "updated"
+    },
+    {
+      "path": "web/src/styles/tokens.css",
+      "status": "updated"
+    },
+    {
+      "path": "web/src/styles/index.css",
+      "status": "updated"
+    },
+    {
+      "path": "web/src/App.tsx",
+      "status": "updated"
+    }
+  ],
+  "functions_to_preserve": [
+    "topic profile list/create/update/delete",
+    "profile multi-select and bulk start from dashboard command bar",
+    "run compare selection and compare-route navigation",
+    "rerun entry navigation",
+    "latest report open flow",
+    "dashboard settings/status readout",
+    "saved sessions/views visibility in inspector",
+    "schedule results awareness",
+    "provider fallback_only display",
+    "metadata index state",
+    "mcp / stitch truthful status chips"
+  ],
+  "truthful_stitch_label": "Stitch handoff applied, not runtime integrated",
+  "label": "Stitch direct/manual handoff applied"
+}

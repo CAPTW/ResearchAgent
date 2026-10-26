@@ -1,0 +1,17 @@
+{
+  "scheduleName": "weekday-pm",
+  "storageRoot": "C:\\XRMLData\\workspace",
+  "resultRoot": "C:\\XRMLData\\schedule-results\\weekday-pm",
+  "ledgerPath": "C:\\XRMLData\\schedule-ledger\\weekday-pm.jsonl",
+  "delaySecondsBetweenTopics": 15,
+  "continueOnError": true,
+  "forceUserScopeBootstrap": false,
+  "noRunnerFallback": false,
+  "topics": [
+    {
+      "topic": "Egocentric XR perception",
+      "profileName": "Egocentric XR",
+      "enabled": true
+    }
+  ]
+}

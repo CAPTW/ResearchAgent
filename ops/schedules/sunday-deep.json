@@ -1,0 +1,22 @@
+{
+  "scheduleName": "sunday-deep",
+  "storageRoot": "C:\\XRMLData\\workspace",
+  "resultRoot": "C:\\XRMLData\\schedule-results\\sunday-deep",
+  "ledgerPath": "C:\\XRMLData\\schedule-ledger\\sunday-deep.jsonl",
+  "delaySecondsBetweenTopics": 60,
+  "continueOnError": true,
+  "forceUserScopeBootstrap": false,
+  "noRunnerFallback": false,
+  "topics": [
+    {
+      "topic": "Gaussian avatars in XR",
+      "profileName": "Gaussian XR",
+      "enabled": true
+    },
+    {
+      "topic": "3D Gaussian splatting for XR telepresence",
+      "profileName": "Gaussian Telepresence XR",
+      "enabled": true
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "xrml-desktop-host",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Tauri v2 host for the XRML native research workspace.",
+  "license": "Apache-2.0",
+  "scripts": {
+    "tauri": "tauri",
+    "build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.11.4"
+  }
+}

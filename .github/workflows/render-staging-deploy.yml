@@ -1,0 +1,98 @@
+name: render-staging-deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Optional safe run id for one authenticated read-only MCP smoke.
+        required: false
+        type: string
+      retry_attempts:
+        description: Number of smoke attempts while waiting for Render to finish building.
+        required: false
+        default: "20"
+        type: string
+      retry_delay_seconds:
+        description: Delay between post-deploy smoke attempts in seconds.
+        required: false
+        default: "30"
+        type: string
+
+concurrency:
+  group: render-staging-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: deploy-render-staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: render-staging
+      url: https://xrml-research-agent-staging.onrender.com/app
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install backend dev dependencies
+        run: uv sync --extra dev
+
+      - name: Validate Render staging blueprint
+        run: |
+          uv run python - <<'PY'
+          from pathlib import Path
+          from app.services.render_deploy_config import validate_render_blueprint
+
+          errors = validate_render_blueprint(Path("render.yaml"))
+          if errors:
+              raise SystemExit("\n".join(errors))
+          print("render.yaml validation passed")
+          PY
+
+      - name: Trigger Render staging deploy hook for this commit
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --request POST --get \
+            --data-urlencode "ref=${GITHUB_SHA}" \
+            "$RENDER_DEPLOY_HOOK_URL"
+
+      - name: Publish deploy summary
+        shell: bash
+        run: |
+          {
+            echo "## Render staging deploy"
+            echo "- ref: \`${GITHUB_REF_NAME}\`"
+            echo "- commit: \`${GITHUB_SHA}\`"
+            echo "- public web URL: \`https://xrml-research-agent-staging.onrender.com/app\`"
+            echo "- public MCP URL: \`https://xrml-research-agent-staging.onrender.com/mcp\`"
+            echo "- persistent data root: \`/opt/render/project/src/storage\`"
+            echo "- next step: run reusable post-deploy smoke with retries"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  verify:
+    needs: deploy
+    uses: ./.github/workflows/staging-smoke.yml
+    with:
+      base_url: https://xrml-research-agent-staging.onrender.com
+      web_base_path: /app
+      run_id: ${{ inputs.run_id }}
+      retry_attempts: ${{ inputs.retry_attempts }}
+      retry_delay_seconds: ${{ inputs.retry_delay_seconds }}
+    secrets:
+      bearer_token: ${{ secrets.STAGING_SMOKE_BEARER_TOKEN }}

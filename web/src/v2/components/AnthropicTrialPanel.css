@@ -1,0 +1,16 @@
+.anthropic-trial-panel { display: grid; gap: 12px; min-width: 0; padding: 16px; border: 1px solid var(--border-default); border-radius: 8px; background: var(--surface-elevated); color: var(--text-primary); overflow-wrap: anywhere; }
+.anthropic-trial-panel h3, .anthropic-trial-panel h4, .anthropic-trial-panel p { margin: 0; }
+.anthropic-trial-panel > .v2-button { justify-self: start; }
+.anthropic-trial-text { max-height: 340px; overflow: auto; min-width: 0; margin: 0; padding: 12px; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; background: var(--surface-hover); border: 1px solid var(--border-default); border-radius: 6px; }
+.anthropic-trial-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; min-width: 0; margin: 0; }
+.anthropic-trial-facts div { min-width: 0; }
+.anthropic-trial-facts dt { font-weight: 700; }
+.anthropic-trial-facts dd { margin: 4px 0 0; }
+.anthropic-trial-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.anthropic-trial-actions .v2-button { max-width: 100%; white-space: normal; }
+.anthropic-trial-pending { padding: 12px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--surface-hover); }
+.anthropic-trial-panel summary { cursor: pointer; }
+.anthropic-trial-diagnostic { display: grid; gap: 8px; min-width: 0; padding: 12px; border: 1px solid var(--border-strong); border-radius: 6px; }
+.anthropic-trial-diagnostic ul { margin: 0; padding-inline-start: 24px; }
+.anthropic-trial-panel summary:focus-visible { outline: 2px solid var(--accent-primary, #3f82ff); outline-offset: 3px; }
+@media (max-width: 760px) { .anthropic-trial-facts { grid-template-columns: minmax(0, 1fr); } }

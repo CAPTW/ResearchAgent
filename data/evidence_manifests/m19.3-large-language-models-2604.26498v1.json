@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "manifest_kind": "paper_full_text_evidence_replay",
+  "topic_id": "large-language-models",
+  "paper_id": "2604.26498v1",
+  "title": "Do Larger Models Really Win in Drug Discovery? A Benchmark Assessment of Model Scaling in AI-Driven Molecular Property and Activity Prediction",
+  "pdf_url": "https://arxiv.org/pdf/2604.26498v1",
+  "pdf_domain": "arxiv.org",
+  "pdf_sha256": "f3f36c95584d978347d8358501bf328756e37ef187e7b4143c68fdc2ac7d1f05",
+  "source_text_sha256": "306a9924fc26625edf05e89028cdb000a5a14c1ba9b796ac551ba7c149679049",
+  "artifact_ref": "run:raw/2604.26498v1.txt",
+  "pages_artifact_ref": "run:raw/2604.26498v1.pages.json",
+  "pdf_artifact_ref": "run:raw/2604.26498v1.pdf",
+  "extraction": {
+    "page_count": 10,
+    "extracted_chars": 24000,
+    "extractor": "local_pdf_extraction",
+    "pages_json_sha256": "58fff6988daf7d92738a32645bb9f42abe607576c4acf661da339dac425a7da2"
+  },
+  "review": {
+    "expected_status": "reviewed",
+    "evidence_span_count": 1,
+    "evidence_span_metadata": [
+      {
+        "index": 1,
+        "label": "full_text_excerpt_1",
+        "char_start": 0,
+        "char_end": 420,
+        "text_sha256": "625a1d2470eebb8d48334cc70ee42d9f22e24448efe56f78500e088ab282f6eb"
+      }
+    ]
+  },
+  "acquisition": {
+    "command_provenance": ".\\.venv\\Scripts\\python.exe -m app.cli.review_refresh --topic large-language-models --unique-limit 50 --use-full-text --fetch-missing-pdf --download-limit 1 --allow-domain arxiv.org --extract-after-fetch --max-pdf-bytes 25000000 --download-timeout 30 --allow-bounded-pdf-fetch --exclude-paper-id 2605.03205v1 --target-paper-id 2604.26498v1",
+    "max_pdf_bytes": 25000000,
+    "download_limit": 1,
+    "allow_domain": "arxiv.org",
+    "timeout_seconds": 30,
+    "operator_gate_required": true
+  },
+  "known_exclusions": [
+    {
+      "paper_id": "2605.03205v1",
+      "reason": "file_too_large",
+      "max_pdf_bytes": 25000000
+    }
+  ],
+  "coverage": {
+    "before_full_text_reviewed_unique_count": 27,
+    "after_full_text_reviewed_unique_count": 28,
+    "topic_relevant_unique_count": 524
+  },
+  "portability": {
+    "do_not_commit_pdf": true,
+    "do_not_commit_full_text": true,
+    "do_not_commit_pages_json": true,
+    "replay_requires_bounded_network": true
+  },
+  "created_from_commit": "2c83bd4",
+  "notes": [
+    "Local runtime state depends on ignored DB/storage.",
+    "Verifier checks local state; it does not reconstruct it offline.",
+    "No PDF bytes, full extracted text, pages content, secrets, or long verbatim paper passages are included."
+  ]
+}

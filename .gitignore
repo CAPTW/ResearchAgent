@@ -1,0 +1,100 @@
+.venv/
+.venv.repair-*/
+node_modules/
+web/node_modules/
+web/dist/
+output/
+artifacts/
+*.log
+*.err
+*.tmp
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+.env
+# Local MCP config; keep .mcp.json.example as the portable source reference.
+.mcp.json
+tmp/
+tmp_*
+test-results/
+playwright-report/
+web/test-results/
+*.tsbuildinfo
+storage/metadata_index.sqlite3
+storage/scheduler.sqlite3
+storage/*.sqlite3
+storage/*.sqlite3-*
+storage/*.sqlite3-journal
+/storage/.scheduler.sqlite3.fk-migration.lock
+/storage/.metadata_index.sqlite3.fk-migration.lock
+*.sqlite3-wal
+*.sqlite3-shm
+*.sqlite3-journal
+*.db-wal
+*.db-shm
+*.db-journal
+storage/topic_analytics/
+storage/topic_schedules/
+storage/topic_profiles/profiles (*).json
+storage/runs/
+storage/backups/
+storage/tmp-*/
+
+# Local/generated raw paper overlays; keep .gitkeep as the structural placeholder.
+data/papers/raw/*.jsonl
+!data/papers/raw/.gitkeep
+
+# --- Coverage and profiling output ---
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+web/coverage/
+.nyc_output/
+*.lcov
+
+# --- Browser evidence: screenshots, traces, recorded video ---
+*.trace.zip
+*.webm
+screenshots/
+web/screenshots/
+web/playwright-report/
+web/blob-report/
+**/test-results/
+
+# --- Build output ---
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# --- Tool and type-checker caches ---
+.mypy_cache/
+.ruff_cache/
+.vite/
+.turbo/
+node_modules/.cache/
+desktop/src-tauri/binaries/*.exe
+desktop/src-tauri/binaries/sidecar-runtime/
+
+# --- Editor and OS cruft ---
+.idea/
+*.swp
+*.swo
+*~
+Thumbs.db
+Desktop.ini
+# .vscode is intentionally not ignored wholesale; the repo may share settings.
+.vscode/*.local.json
+
+# --- Stray databases at the repository root ---
+/*.sqlite3
+/*.sqlite3-*
+/*.db
+/*.db-*
+
+# --- Local source-distribution candidates ---
+# The packager writes outside the repository; this only catches a mistaken run.
+xrml-research-agent-source-*.tar.gz
+xrml-research-agent-source-*.manifest.json

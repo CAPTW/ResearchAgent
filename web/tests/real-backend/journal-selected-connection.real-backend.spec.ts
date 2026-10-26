@@ -1,0 +1,136 @@
+import fs from "node:fs";
+import path from "node:path";
+import { test, expect, topicA, topicB, installLedger, assertHygiene } from "./m2-paper-bank.real-backend.helpers";
+
+test("saved Codex selection freezes Journal input through conflict, lost response and restart", async ({ page, backend, context }, info) => {
+  test.setTimeout(90000);
+  const ledger = await installLedger(context, page);
+  const runs = fs.readdirSync(path.join(backend.dataRoot, "runs")).sort();
+  await page.goto(`/app/topics/${topicA}/settings`);
+  const settings = page.getByRole("region", { name: "모델 연결 설정", exact: true });
+  await expect(settings.getByRole("combobox", { name: "기본 모델 연결" })).toHaveValue("codex_subscription");
+  const configured = settings.getByRole("textbox", { name: "Codex · ChatGPT 구독 모델", exact: true });
+  await configured.fill("fixture-codex-original");
+  await configured.press("Enter");
+  await expect(settings.getByText(/모델 연결 설정을 저장했습니다/)).toBeVisible();
+
+  await page.goto(`/app/topics/${topicA}/papers`);
+  await page.getByRole("table").locator("tbody input[type=checkbox]").first().check();
+  await page.getByRole("button", { name: "선택 보고서 입력 고정" }).click();
+  const panel = page.getByRole("region", { name: "선택 문헌 근거 초안" });
+  await expect(panel.getByText("수동 진행 가능 · 0 / 3 단계")).toBeVisible();
+  const job = new URL(page.url()).searchParams.get("synthesis")!;
+  const root = `/api/topics/${topicA}/local-synthesis/${job}`;
+  for (let step = 1; step <= 3; step++) {
+    await panel.getByRole("button", { name: "다음 한 단계 실행" }).click();
+    await expect(panel.getByText(`${step === 3 ? "근거 초안 준비됨" : "수동 진행 가능"} · ${step} / 3 단계`)).toBeVisible();
+  }
+  await panel.getByText("저장된 생성 결과", { exact: true }).click();
+  const results = panel.getByRole("region", { name: "저장된 저널 생성 결과" });
+  await results.getByText("새 생성 요청 준비", { exact: true }).click();
+  const form = results.getByRole("form", { name: "생성 요청 준비" });
+  await expect(form.getByRole("radio", { name: "저장된 모델 연결 사용" })).toBeChecked();
+  await expect(form.getByText("fixture-codex-original", { exact: true })).toBeVisible();
+  await expect(results.getByText(/실행 환경과 실행 승인은 아직 연결되지 않았습니다/)).toBeVisible();
+  await form.getByLabel("최대 시도 횟수").fill("2");
+  await form.getByLabel("시도당 출력 토큰 상한").fill("1024");
+  const changeSelection = async (connector: string, model: string) => {
+    const current = await (await page.request.get("/settings/model-connections")).json();
+    const response = await page.request.put("/settings/model-connections", { data: {
+      expected_revision: current.revision, default_connector_id: connector, models: { ...current.models, [connector]: model },
+    } });
+    expect(response.status()).toBe(200);
+  };
+  // A second settings window changes the selected target after this form read it.
+  await changeSelection("codex_subscription", "fixture-codex-refreshed");
+  const endpoint = `${root}/journal-executions/selected-connection`;
+  const conflictResponse = page.waitForResponse(r => r.url().endsWith(endpoint) && r.request().method() === "POST");
+  const conflictConsole = page.waitForEvent("console", message => message.type() === "error" && message.text().includes("409"));
+  await form.getByRole("button", { name: "로컬 생성 요청 준비" }).click();
+  const conflict = await conflictResponse;
+  expect(conflict.status()).toBe(409);
+  expect(await conflict.json()).toEqual({ detail: "model_connection_selection_changed" });
+  const conflictError = await conflictConsole;
+  await expect(results.getByRole("alert")).toContainText("저장된 모델 연결이 변경되었습니다");
+  await expect(form.getByRole("button", { name: "로컬 생성 요청 준비" })).toBeDisabled();
+  expect((await (await page.request.get(`${root}/journal-executions`)).json()).total).toBe(0);
+  const conflictIndex = ledger.consoleErrors.indexOf(conflictError.text());
+  expect(conflictIndex).toBeGreaterThanOrEqual(0);
+  ledger.handledExpectedErrors.push(...ledger.consoleErrors.splice(conflictIndex, 1));
+  await form.getByRole("button", { name: "연결 다시 확인" }).click();
+  await expect(form.getByText("fixture-codex-refreshed", { exact: true })).toBeVisible();
+  await expect(form.getByLabel("최대 시도 횟수")).toHaveValue("2");
+  await expect(form.getByLabel("시도당 출력 토큰 상한")).toHaveValue("1024");
+
+  // Store through the real API, then lose only its browser acknowledgment.
+  let submittedBody = "";
+  let saved: { contract: { execution_id: string; specification: { provider_name: string; model: string }; provider_request: { prompt: string } }; current: { state: string; attempt: number }; events: unknown[] } | undefined;
+  await page.route(`**${endpoint}`, async route => {
+    submittedBody = route.request().postData()!;
+    const response = await route.fetch();
+    expect(response.status()).toBe(201);
+    saved = (await response.json()).execution;
+    await route.abort("failed");
+  }, { times: 1 });
+  const lostConsole = page.waitForEvent("console", message => message.type() === "error" && message.text().includes("net::ERR_FAILED"));
+  await form.getByRole("button", { name: "로컬 생성 요청 준비" }).click();
+  await expect(results.getByRole("alert")).toContainText("저장 응답을 확인하지 못했습니다");
+  const lostError = await lostConsole;
+  const lostIndex = ledger.consoleErrors.indexOf(lostError.text());
+  expect(lostIndex).toBeGreaterThanOrEqual(0);
+  ledger.handledExpectedErrors.push(...ledger.consoleErrors.splice(lostIndex, 1));
+  expect(saved!.contract.specification).toMatchObject({ provider_name: "codex_cli", model: "fixture-codex-refreshed" });
+  expect(saved!.current).toMatchObject({ state: "READY", attempt: 0 }); expect(saved!.events).toEqual([]);
+  await changeSelection("openai_api", "fixture-other-window-model");
+  await expect(form.getByRole("button", { name: "연결 다시 확인" })).toBeDisabled();
+  await expect(form.getByRole("radio", { name: "도구·모델 직접 입력" })).toBeDisabled();
+  await results.getByText("새 생성 요청 준비", { exact: true }).click();
+  await results.getByText("새 생성 요청 준비", { exact: true }).click();
+  const replayResponse = page.waitForResponse(r => r.url().endsWith(endpoint) && r.request().method() === "POST");
+  await form.getByRole("button", { name: "같은 준비 요청 다시 보내기" }).press("Enter");
+  const replay = await replayResponse;
+  expect(replay.status()).toBe(200); expect(replay.request().postData()).toBe(submittedBody);
+  expect(await replay.json()).toEqual({ execution: saved, created: false });
+  const history = results.getByRole("region", { name: "저널 실행 이력과 제어" });
+  await expect(history.getByText(/최근 저장 상태: 입력 준비 기록 · 시도 0 \/ 최대 2회/)).toBeVisible();
+  const preview = history.getByRole("region", { name: "현재 Codex 실행 조건 미리보기" });
+  const previewResponse = page.waitForResponse(r => r.url().endsWith("/codex-preview"));
+  await preview.getByRole("button", { name: "현재 Codex 실행 조건 확인", exact: true }).click();
+  expect(await (await previewResponse).json()).toMatchObject({ available: false, reason: "codex_preview_not_configured", execution_allowed: false });
+  await expect(preview).toContainText("설정");
+  await expect(preview.getByText("현재 미리보기 전송 조건", { exact: true })).toHaveCount(0);
+  await history.getByText("고정된 실행 요청 정보", { exact: true }).click();
+  await expect(history.getByText("요청 도구·모델: codex_cli · fixture-codex-refreshed")).toBeVisible();
+  await history.getByText("요청 내용·토큰 사용 기록", { exact: true }).click();
+  await history.getByText("보존된 어댑터 입력 보기", { exact: true }).click();
+  expect(await history.getByLabel("보존된 문헌 입력").textContent()).toBe(saved!.contract.provider_request.prompt);
+  await history.getByText("요청 내용·토큰 사용 기록", { exact: true }).click();
+  await history.getByRole("heading", { name: "실행 이력과 상태 관리", exact: true }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: info.outputPath("selected-journal-wide.png") });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(async () => { const box = await page.locator("#v2-sidebar").boundingBox(); return box ? box.x + box.width : 0; }).toBeLessThanOrEqual(0);
+  await results.getByRole("button", { name: "다른 요청 준비" }).click();
+  await form.getByRole("button", { name: "연결 다시 확인" }).click();
+  await expect(form.getByText("fixture-other-window-model", { exact: true })).toBeVisible();
+  await form.getByRole("radio", { name: "저장된 모델 연결 사용" }).scrollIntoViewIfNeeded();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({ path: info.outputPath("selected-journal-narrow.png") });
+  await history.getByRole("button", { name: "이 요청의 결과 저장 취소" }).click();
+  await expect(history.getByText(/최근 저장 상태: 결과 저장 취소 · 시도 0/)).toBeVisible();
+  const detail = `${root}/journal-executions/${saved!.contract.execution_id}`;
+  const cancelled = await (await page.request.get(detail)).json();
+  expect(cancelled.contract).toEqual(saved!.contract);
+  expect((await (await page.request.get(`${root}/journal-executions`)).json()).total).toBe(1);
+  expect((await page.request.get(detail.replace(topicA, topicB))).status()).toBe(404);
+  await page.goto(`/app/topics/${topicB}/reports`);
+  await expect(page.getByRole("region", { name: "저널 실행 이력과 제어" })).toHaveCount(0);
+  await page.goto("about:blank"); await backend.restart();
+  expect(await (await page.request.get(detail)).json()).toEqual(cancelled);
+  await page.goto(`/app/topics/${topicA}/reports?synthesis=${encodeURIComponent(job)}`);
+  await page.getByText("저장된 생성 결과", { exact: true }).click();
+  await page.getByRole("button", { name: "실행 이력·제어 열기" }).click();
+  await expect(page.getByText(/최근 저장 상태: 결과 저장 취소 · 시도 0/)).toBeVisible();
+  await assertHygiene(ledger);
+  expect(fs.readdirSync(path.join(backend.dataRoot, "runs")).sort()).toEqual(runs);
+  backend.writeJourneyResult({ journey: info.title, migrationIds: [], assertions: { savedCodexDefault: true, staleSelectionRejected: true, exactLostResponseReplay: true, cancelled: true, restartPreserved: true, automaticRuns: 0, expectedErrors: ledger.handledExpectedErrors.length, passed: info.status === "passed" }, timing: {}, hygiene: { consoleErrors: ledger.consoleErrors.length, pageErrors: ledger.pageErrors.length, offOriginAttempts: ledger.offOriginAttempts.length } });
+});

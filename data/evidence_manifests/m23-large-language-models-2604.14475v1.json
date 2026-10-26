@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "manifest_kind": "paper_full_text_evidence_replay",
+  "topic_id": "large-language-models",
+  "paper_id": "2604.14475v1",
+  "title": "Evo-MedAgent: Beyond One-Shot Diagnosis with Agents That Remember, Reflect, and Improve",
+  "pdf_url": "https://arxiv.org/pdf/2604.14475v1",
+  "pdf_domain": "arxiv.org",
+  "pdf_sha256": "bcdd21a14a095965aa66382fc21ad0ceaaff49fd5ff8ed9f461cbb38b73569be",
+  "source_text_sha256": "76561ab1d3e28a893267c82f1a2f842260f52b83fd3cc15af01eade22c0b8d70",
+  "artifact_ref": "run:raw/2604.14475v1.txt",
+  "pages_artifact_ref": "run:raw/2604.14475v1.pages.json",
+  "pdf_artifact_ref": "run:raw/2604.14475v1.pdf",
+  "extraction": {
+    "page_count": 8,
+    "extracted_chars": 23999,
+    "extractor": "local_pdf_extraction",
+    "extraction_method": "pdftotext",
+    "pages_json_sha256": "11fbdb994a253c6140529a0eaa61b50ca81d1cbadc0e4f34a4dee3c3a2469bcf"
+  },
+  "review": {
+    "expected_status": "reviewed",
+    "evidence_span_count": 1,
+    "evidence_span_metadata": [
+      {
+        "index": 1,
+        "label": "full_text_excerpt_1",
+        "char_start": 0,
+        "char_end": 420,
+        "text_sha256": "adbea893f35335adcf7f383e09b5cbfcb801c3af5763aec3a13a0a61dd5f6b10"
+      }
+    ]
+  },
+  "acquisition": {
+    "command_provenance": ".\\.venv\\Scripts\\python.exe -m app.cli.review_refresh --topic large-language-models --unique-limit 100 --use-full-text --fetch-missing-pdf --download-limit 1 --allow-domain arxiv.org --extract-after-fetch --max-pdf-bytes 25000000 --download-timeout 30 --allow-bounded-pdf-fetch --target-paper-id 2604.14475v1 --exclude-paper-id 2604.26498v1 --exclude-paper-id 2605.01143v1 --exclude-paper-id 2605.03205v1",
+    "max_pdf_bytes": 25000000,
+    "download_limit": 1,
+    "allow_domain": "arxiv.org",
+    "timeout_seconds": 30,
+    "operator_gate_required": true,
+    "operator_gate_env_var": "ALLOW_BOUNDED_PDF_FETCH",
+    "operator_gate_env_value_required": "1"
+  },
+  "known_already_verified": [
+    {
+      "paper_id": "2604.26498v1",
+      "reason": "already_replay_proven",
+      "manifest_path": "data/evidence_manifests/m19.3-large-language-models-2604.26498v1.json"
+    },
+    {
+      "paper_id": "2605.01143v1",
+      "reason": "already_replay_proven",
+      "manifest_path": "data/evidence_manifests/m21-large-language-models-2605.01143v1.json"
+    }
+  ],
+  "selection_exclusions": [
+    {
+      "paper_id": "2604.26498v1",
+      "reason": "already_replay_proven"
+    },
+    {
+      "paper_id": "2605.01143v1",
+      "reason": "already_replay_proven"
+    },
+    {
+      "paper_id": "2605.03205v1",
+      "reason": "file_too_large",
+      "max_pdf_bytes": 25000000
+    }
+  ],
+  "known_exclusions": [
+    {
+      "paper_id": "2605.03205v1",
+      "reason": "file_too_large",
+      "max_pdf_bytes": 25000000
+    }
+  ],
+  "coverage": {
+    "before_full_text_reviewed_unique_count": 29,
+    "after_full_text_reviewed_unique_count": 30,
+    "topic_relevant_unique_count": 524
+  },
+  "portability": {
+    "do_not_commit_pdf": true,
+    "do_not_commit_full_text": true,
+    "do_not_commit_pages_json": true,
+    "replay_requires_bounded_network": true
+  },
+  "created_from_commit": "8e9eefc",
+  "notes": [
+    "Local runtime state depends on ignored DB/storage.",
+    "Verifier checks local state; it does not reconstruct it offline.",
+    "No PDF bytes, full extracted text, pages content, secrets, or long verbatim paper passages are included.",
+    "Already replay-proven papers are recorded separately from known_exclusions because the verifier treats known_exclusions as papers that must not be reviewed."
+  ]
+}

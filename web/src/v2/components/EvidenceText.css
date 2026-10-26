@@ -1,0 +1,7 @@
+.evidence-text { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.evidence-text > label { display: block; margin-top: 10px; }
+.evidence-text > input { box-sizing: border-box; width: 100%; max-width: 40rem; min-width: 0; }
+.evidence-text-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.evidence-text .evidence-text-original { white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; line-height: 1.7; }
+.evidence-text mark { color: var(--text-primary); background: var(--surface-selected); outline: 1px solid var(--accent-primary); font-weight: 700; }
+.evidence-text :is(input, button, summary):focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }

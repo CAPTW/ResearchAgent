@@ -1,0 +1,110 @@
+name: staging-smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Public HTTPS base URL to verify.
+        required: true
+        type: string
+      web_base_path:
+        description: Production SPA base path.
+        required: false
+        default: /app
+        type: string
+      run_id:
+        description: Optional run id for one authenticated read-only MCP smoke.
+        required: false
+        type: string
+      retry_attempts:
+        description: Number of smoke attempts before failing.
+        required: false
+        default: "1"
+        type: string
+      retry_delay_seconds:
+        description: Delay between smoke retries in seconds.
+        required: false
+        default: "15"
+        type: string
+  workflow_call:
+    inputs:
+      base_url:
+        required: true
+        type: string
+      web_base_path:
+        required: false
+        default: /app
+        type: string
+      run_id:
+        required: false
+        type: string
+      retry_attempts:
+        required: false
+        default: "1"
+        type: string
+      retry_delay_seconds:
+        required: false
+        default: "15"
+        type: string
+    secrets:
+      bearer_token:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  staging-smoke:
+    name: staging-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SMOKE_BASE_URL: ${{ inputs.base_url }}
+      SMOKE_WEB_BASE_PATH: ${{ inputs.web_base_path }}
+      SMOKE_RUN_ID: ${{ inputs.run_id }}
+      SMOKE_RETRY_ATTEMPTS: ${{ inputs.retry_attempts }}
+      SMOKE_RETRY_DELAY_SECONDS: ${{ inputs.retry_delay_seconds }}
+      SMOKE_BEARER_TOKEN: ${{ secrets.bearer_token || secrets.STAGING_SMOKE_BEARER_TOKEN }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install backend dev dependencies
+        run: uv sync --extra dev
+
+      - name: Run staging deployment smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(tools/mcp_connector_smoke.py --base-url "$SMOKE_BASE_URL" --web-base-path "$SMOKE_WEB_BASE_PATH" --json --markdown-summary staging-smoke-summary.md --retry-attempts "$SMOKE_RETRY_ATTEMPTS" --retry-delay-seconds "$SMOKE_RETRY_DELAY_SECONDS")
+          if [[ -n "${SMOKE_BEARER_TOKEN:-}" && -n "${SMOKE_RUN_ID:-}" ]]; then
+            args+=(--bearer-token "$SMOKE_BEARER_TOKEN" --run-id "$SMOKE_RUN_ID")
+          fi
+          uv run python "${args[@]}" | tee staging-smoke-result.json
+
+      - name: Publish smoke summary
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f staging-smoke-summary.md ]]; then
+            cat staging-smoke-summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload smoke result artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-smoke-result
+          path: |
+            staging-smoke-result.json
+            staging-smoke-summary.md

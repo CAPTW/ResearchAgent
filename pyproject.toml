@@ -1,0 +1,157 @@
+[build-system]
+# Pinned exactly. `uv.lock` governs runtime and dev packages, but the isolated build
+# environment is resolved fresh on every build and is not recorded there, so an unpinned
+# requirement floats silently. The measured closure is constrained in [tool.uv] below.
+requires = ["hatchling==1.32.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "xrml-research-agent"
+version = "0.1.0"
+description = "Incremental application shell for the XRML research agent prototype."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+  { name = "CAPTW" },
+]
+maintainers = [
+  { name = "CAPTW" },
+]
+keywords = ["research", "agent", "literature-review", "fastapi", "mcp"]
+# Owner-selected. Covers project-owned source in the public snapshot only; it does
+# not license dependencies (never bundled), article PDFs or full text, datasets,
+# runtime data, or generated reports. See docs/LICENSE_SCOPE.md.
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Environment :: Web Environment",
+  "Framework :: FastAPI",
+  "Natural Language :: English",
+  "Natural Language :: Korean",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Text Processing :: Indexing",
+  "Private :: Do Not Upload",
+]
+dependencies = [
+  "fastapi>=0.116,<1.0",
+  "httpx>=0.28,<1.0",
+  "itsdangerous>=2.2,<3.0",
+  "PyJWT[crypto]>=2.10,<3.0",
+  "reportlab>=4.4,<5.0",
+  "uvicorn>=0.35,<1.0",
+]
+
+[project.urls]
+Repository = "https://github.com/CAPTW/ResearchAgent"
+Issues = "https://github.com/CAPTW/ResearchAgent/issues"
+
+[project.optional-dependencies]
+fulltext = [
+  "pymupdf>=1.26,<2.0",
+]
+codex-sdk = [
+  "openai-codex",
+]
+dev = [
+  "httpx>=0.28,<1.0",
+  "pytest>=8.4,<9.0",
+  "ruff>=0.14,<1.0",
+  "mypy>=1.19,<2.0",
+]
+desktop = [
+  "pyinstaller==6.22.2",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.uv]
+# Exact isolated-build authority. Every entry is already requested by the build dependency
+# graph: hatchling itself, its transitive requirements, and `editables`, which hatchling's
+# get_requires_for_build_editable() hook adds on a second resolution pass for the editable
+# install `uv sync` performs. Constraints only narrow what the build already asks for -- they
+# add no package request, and they are not runtime or dev dependencies.
+#
+# `packaging` is 26.3 here while uv.lock records 26.0 for the project environment. That is not
+# a conflict but the entire point: the build environment resolves independently of uv.lock,
+# which is exactly why it needs its own committed authority. The two must not be collapsed.
+#
+# Ordered by normalized name. Changing any entry requires the independent clean-cache and
+# offline re-proof described in CONTRIBUTING.md.
+build-constraint-dependencies = [
+    "editables==0.6",
+    "hatchling==1.32.0",
+    "packaging==26.3",
+    "pathspec==1.1.1",
+    "pluggy==1.6.0",
+    "tomlkit==0.15.1",
+    "trove-classifiers==2026.6.1.19",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["web", ".venv", ".venv.repair-*", "storage", "output"]
+
+[tool.ruff.lint]
+# Pinned explicitly: the exact rules Ruff 0.14.14 enabled by default over this config.
+# Ruff 0.16 widened its implicit defaults from 6 findings to 894 over the same scope.
+# That inventory is real but unreviewed, and inheriting it silently would turn a
+# toolchain checkpoint into a mass refactor of product code. Enumerated by code rather
+# than prefix: selecting "E4" would re-add E402, which the ignore below deliberately
+# drops, so a prefix form reports 12 findings this contract never covered.
+select = [
+    "E401", "E701", "E702", "E703", "E711", "E712", "E713", "E714", "E721", "E722", "E731",
+    "E741", "E742", "E743", "E902", "F401", "F402", "F403", "F404", "F405", "F406", "F407",
+    "F501", "F502", "F503", "F504", "F505", "F506", "F507", "F508", "F509", "F521", "F522",
+    "F523", "F524", "F525", "F541", "F601", "F602", "F621", "F622", "F631", "F632", "F633",
+    "F634", "F701", "F702", "F704", "F706", "F707", "F722", "F811", "F821", "F822", "F823",
+    "F841", "F842", "F901"
+]
+# Keep ruff's default rule set (pyflakes + a curated pycodestyle subset).
+# E402 (module-import-not-at-top) is intentional here: several modules use lazy
+# in-function imports to avoid heavy import cycles, and top-level guarded imports.
+ignore = ["E402"]
+
+[tool.mypy]
+# Current CI is fail-closed on unapproved debt increase: a debt-baseline check
+# plus a self-typed/verifier gate. Existing diagnostic debt remains budgeted.
+# This does not claim that all mypy diagnostics have been eliminated.
+python_version = "3.11"
+# Off as a global default. It hid every missing-import diagnostic across the whole
+# scope, first-party ones included; unmasking it left exactly one third-party family
+# without stubs, enumerated below.
+ignore_missing_imports = false
+warn_unused_ignores = false
+warn_redundant_casts = false
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+# reportlab ships no type information and no stubs package is locked. Listed module by
+# module rather than as `reportlab.*`, so a newly imported submodule surfaces as a
+# diagnostic instead of being absorbed silently.
+#
+# This block must stay after every scalar key above: a TOML array-of-tables claims
+# everything that follows it, and placing it earlier silently moved warn_unused_ignores,
+# warn_redundant_casts and check_untyped_defs into the override without changing a single
+# mypy count.
+module = [
+    "reportlab",
+    "reportlab.lib.pagesizes",
+    "reportlab.lib.styles",
+    "reportlab.lib.units",
+    "reportlab.pdfbase",
+    "reportlab.pdfbase.ttfonts",
+    "reportlab.platypus",
+]
+ignore_missing_imports = true

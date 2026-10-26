@@ -1,0 +1,742 @@
+{
+  "project_id": "projects/672383315129384900",
+  "project_name": "XRML Research Dashboard Redesign",
+  "generated_at": "2026-04-21T15:38:13.0781859+09:00",
+  "source": [
+    "Stitch MCP direct HTTP",
+    "Stitch manual export"
+  ],
+  "layout_structure": {
+    "provenance": "from_stitch_component_hierarchy",
+    "data": {
+      "name": "XRML Research Dashboard Root",
+      "role": "viewport-root",
+      "layout_region": "fullscreen",
+      "children": [
+        {
+          "name": "SideNavBar",
+          "role": "navigation",
+          "layout_region": "left-sidebar",
+          "primary_actions": [
+            "Navigate Dashboard",
+            "Navigate Topics",
+            "Navigate Runs",
+            "Navigate Evidence",
+            "Navigate Reports",
+            "Navigate Compare",
+            "Navigate Automations",
+            "Navigate Settings"
+          ],
+          "data_dependencies": [
+            "active_route",
+            "user_profile_metadata"
+          ],
+          "responsive_notes": "Fixed width (280px) on Desktop; Collapses to hamburger-menu drawer on Narrow layouts.",
+          "children": []
+        },
+        {
+          "name": "GlobalCommandBar",
+          "role": "search-and-action-bar",
+          "layout_region": "top-center",
+          "primary_actions": [
+            "Global Search",
+            "New Research (Launch Flow)",
+            "Start Selected Profiles"
+          ],
+          "data_dependencies": [
+            "search_query",
+            "selection_state"
+          ],
+          "responsive_notes": "Glassmorphic overlay; remains sticky at top. Search input expands on 1920px.",
+          "children": []
+        },
+        {
+          "name": "StatusStrip",
+          "role": "global-readout",
+          "layout_region": "bottom-center",
+          "primary_actions": [
+            "Open provider logs"
+          ],
+          "data_dependencies": [
+            "gemini_provider_status",
+            "stitch_session_state"
+          ],
+          "responsive_notes": "Minimal bar atop footer. Aggregates status into single-line icons on Narrow.",
+          "children": []
+        },
+        {
+          "name": "MainWorkbench",
+          "role": "main-workbench",
+          "layout_region": "center",
+          "primary_actions": [],
+          "data_dependencies": [],
+          "responsive_notes": "Flexible grid container. 12-column layout on Desktop; stack-flow on Narrow.",
+          "children": [
+            {
+              "name": "TopicPortfolio",
+              "role": "dashboard-summary",
+              "layout_region": "workbench-top",
+              "primary_actions": [
+                "Add Topic Profile",
+                "Edit Selected Profile"
+              ],
+              "data_dependencies": [
+                "topic_metadata_list",
+                "telemetry_aggregate"
+              ],
+              "responsive_notes": "4-column grid at 1920px; 3-column at 1440px; 1-column list on Narrow.",
+              "children": []
+            },
+            {
+              "name": "RecentRunsTable",
+              "role": "data-grid",
+              "layout_region": "workbench-bottom",
+              "primary_actions": [
+                "Compare Selected Runs",
+                "Open Rerun Entry",
+                "Open Latest Report"
+              ],
+              "data_dependencies": [
+                "runs_history",
+                "selection_model"
+              ],
+              "responsive_notes": "High-density table. Hides secondary columns (Latency, Cost) on 1440px/Narrow.",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": "ScheduleStatusPanel",
+          "role": "status-module",
+          "layout_region": "center-floating-right",
+          "primary_actions": [
+            "Open Schedule Results"
+          ],
+          "data_dependencies": [
+            "scheduler_health",
+            "mcp_status"
+          ],
+          "responsive_notes": "Compact module anchored bottom-right of workbench. Inset on 1920px; footer-integrated on Narrow.",
+          "children": []
+        },
+        {
+          "name": "RightInspector",
+          "role": "context-panel",
+          "layout_region": "right-panel",
+          "primary_actions": [
+            "Export Run Data",
+            "Full Report Redirect"
+          ],
+          "data_dependencies": [
+            "selected_run_id",
+            "telemetry_logs"
+          ],
+          "responsive_notes": "Fixed width (320px) on 1920px; toggleable Drawer on 1440px; full-screen Overlay on Narrow.",
+          "children": []
+        },
+        {
+          "name": "ProfileDrawer",
+          "role": "edit-sheet",
+          "layout_region": "ephemeral-overlay",
+          "primary_actions": [
+            "Save Profile",
+            "Cancel Changes"
+          ],
+          "data_dependencies": [
+            "selected_profile_form_data"
+          ],
+          "responsive_notes": "Right-anchored modal/drawer. Triggered from TopicPortfolio.",
+          "children": []
+        },
+        {
+          "name": "SettingsStatusCompact",
+          "role": "account-footer",
+          "layout_region": "sidebar-bottom",
+          "primary_actions": [
+            "Logout",
+            "Change local-first storage path"
+          ],
+          "data_dependencies": [
+            "storage_status",
+            "provider_config"
+          ],
+          "responsive_notes": "Collapsed into footer profile on 1440px; mobile settings page link on Narrow.",
+          "children": []
+        }
+      ]
+    },
+    "notes": "Derived from manual component-hierarchy.json."
+  },
+  "component_hierarchy": {
+    "provenance": "from_stitch_component_hierarchy",
+    "data": {
+      "screen": {
+        "name": "XRML Research Dashboard Root",
+        "role": "viewport-root",
+        "layout_region": "fullscreen",
+        "children": [
+          {
+            "name": "SideNavBar",
+            "role": "navigation",
+            "layout_region": "left-sidebar",
+            "primary_actions": [
+              "Navigate Dashboard",
+              "Navigate Topics",
+              "Navigate Runs",
+              "Navigate Evidence",
+              "Navigate Reports",
+              "Navigate Compare",
+              "Navigate Automations",
+              "Navigate Settings"
+            ],
+            "data_dependencies": [
+              "active_route",
+              "user_profile_metadata"
+            ],
+            "responsive_notes": "Fixed width (280px) on Desktop; Collapses to hamburger-menu drawer on Narrow layouts.",
+            "children": []
+          },
+          {
+            "name": "GlobalCommandBar",
+            "role": "search-and-action-bar",
+            "layout_region": "top-center",
+            "primary_actions": [
+              "Global Search",
+              "New Research (Launch Flow)",
+              "Start Selected Profiles"
+            ],
+            "data_dependencies": [
+              "search_query",
+              "selection_state"
+            ],
+            "responsive_notes": "Glassmorphic overlay; remains sticky at top. Search input expands on 1920px.",
+            "children": []
+          },
+          {
+            "name": "StatusStrip",
+            "role": "global-readout",
+            "layout_region": "bottom-center",
+            "primary_actions": [
+              "Open provider logs"
+            ],
+            "data_dependencies": [
+              "gemini_provider_status",
+              "stitch_session_state"
+            ],
+            "responsive_notes": "Minimal bar atop footer. Aggregates status into single-line icons on Narrow.",
+            "children": []
+          },
+          {
+            "name": "MainWorkbench",
+            "role": "main-workbench",
+            "layout_region": "center",
+            "primary_actions": [],
+            "data_dependencies": [],
+            "responsive_notes": "Flexible grid container. 12-column layout on Desktop; stack-flow on Narrow.",
+            "children": [
+              {
+                "name": "TopicPortfolio",
+                "role": "dashboard-summary",
+                "layout_region": "workbench-top",
+                "primary_actions": [
+                  "Add Topic Profile",
+                  "Edit Selected Profile"
+                ],
+                "data_dependencies": [
+                  "topic_metadata_list",
+                  "telemetry_aggregate"
+                ],
+                "responsive_notes": "4-column grid at 1920px; 3-column at 1440px; 1-column list on Narrow.",
+                "children": []
+              },
+              {
+                "name": "RecentRunsTable",
+                "role": "data-grid",
+                "layout_region": "workbench-bottom",
+                "primary_actions": [
+                  "Compare Selected Runs",
+                  "Open Rerun Entry",
+                  "Open Latest Report"
+                ],
+                "data_dependencies": [
+                  "runs_history",
+                  "selection_model"
+                ],
+                "responsive_notes": "High-density table. Hides secondary columns (Latency, Cost) on 1440px/Narrow.",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "ScheduleStatusPanel",
+            "role": "status-module",
+            "layout_region": "center-floating-right",
+            "primary_actions": [
+              "Open Schedule Results"
+            ],
+            "data_dependencies": [
+              "scheduler_health",
+              "mcp_status"
+            ],
+            "responsive_notes": "Compact module anchored bottom-right of workbench. Inset on 1920px; footer-integrated on Narrow.",
+            "children": []
+          },
+          {
+            "name": "RightInspector",
+            "role": "context-panel",
+            "layout_region": "right-panel",
+            "primary_actions": [
+              "Export Run Data",
+              "Full Report Redirect"
+            ],
+            "data_dependencies": [
+              "selected_run_id",
+              "telemetry_logs"
+            ],
+            "responsive_notes": "Fixed width (320px) on 1920px; toggleable Drawer on 1440px; full-screen Overlay on Narrow.",
+            "children": []
+          },
+          {
+            "name": "ProfileDrawer",
+            "role": "edit-sheet",
+            "layout_region": "ephemeral-overlay",
+            "primary_actions": [
+              "Save Profile",
+              "Cancel Changes"
+            ],
+            "data_dependencies": [
+              "selected_profile_form_data"
+            ],
+            "responsive_notes": "Right-anchored modal/drawer. Triggered from TopicPortfolio.",
+            "children": []
+          },
+          {
+            "name": "SettingsStatusCompact",
+            "role": "account-footer",
+            "layout_region": "sidebar-bottom",
+            "primary_actions": [
+              "Logout",
+              "Change local-first storage path"
+            ],
+            "data_dependencies": [
+              "storage_status",
+              "provider_config"
+            ],
+            "responsive_notes": "Collapsed into footer profile on 1440px; mobile settings page link on Narrow.",
+            "children": []
+          }
+        ]
+      }
+    },
+    "validation": {
+      "required_components": [
+        "screen/root",
+        "sidebar/nav",
+        "command bar",
+        "status strip",
+        "main workbench",
+        "topic portfolio",
+        "recent runs table/list",
+        "schedule status panel",
+        "right inspector",
+        "profile drawer/modal",
+        "settings/status compact area"
+      ],
+      "components": {
+        "screen/root": {
+          "name": "XRML Research Dashboard Root",
+          "role": "viewport-root",
+          "layout_region": "fullscreen",
+          "children": [
+            {
+              "name": "SideNavBar",
+              "role": "navigation",
+              "layout_region": "left-sidebar",
+              "primary_actions": [
+                "Navigate Dashboard",
+                "Navigate Topics",
+                "Navigate Runs",
+                "Navigate Evidence",
+                "Navigate Reports",
+                "Navigate Compare",
+                "Navigate Automations",
+                "Navigate Settings"
+              ],
+              "data_dependencies": [
+                "active_route",
+                "user_profile_metadata"
+              ],
+              "responsive_notes": "Fixed width (280px) on Desktop; Collapses to hamburger-menu drawer on Narrow layouts.",
+              "children": []
+            },
+            {
+              "name": "GlobalCommandBar",
+              "role": "search-and-action-bar",
+              "layout_region": "top-center",
+              "primary_actions": [
+                "Global Search",
+                "New Research (Launch Flow)",
+                "Start Selected Profiles"
+              ],
+              "data_dependencies": [
+                "search_query",
+                "selection_state"
+              ],
+              "responsive_notes": "Glassmorphic overlay; remains sticky at top. Search input expands on 1920px.",
+              "children": []
+            },
+            {
+              "name": "StatusStrip",
+              "role": "global-readout",
+              "layout_region": "bottom-center",
+              "primary_actions": [
+                "Open provider logs"
+              ],
+              "data_dependencies": [
+                "gemini_provider_status",
+                "stitch_session_state"
+              ],
+              "responsive_notes": "Minimal bar atop footer. Aggregates status into single-line icons on Narrow.",
+              "children": []
+            },
+            {
+              "name": "MainWorkbench",
+              "role": "main-workbench",
+              "layout_region": "center",
+              "primary_actions": [],
+              "data_dependencies": [],
+              "responsive_notes": "Flexible grid container. 12-column layout on Desktop; stack-flow on Narrow.",
+              "children": [
+                {
+                  "name": "TopicPortfolio",
+                  "role": "dashboard-summary",
+                  "layout_region": "workbench-top",
+                  "primary_actions": [
+                    "Add Topic Profile",
+                    "Edit Selected Profile"
+                  ],
+                  "data_dependencies": [
+                    "topic_metadata_list",
+                    "telemetry_aggregate"
+                  ],
+                  "responsive_notes": "4-column grid at 1920px; 3-column at 1440px; 1-column list on Narrow.",
+                  "children": []
+                },
+                {
+                  "name": "RecentRunsTable",
+                  "role": "data-grid",
+                  "layout_region": "workbench-bottom",
+                  "primary_actions": [
+                    "Compare Selected Runs",
+                    "Open Rerun Entry",
+                    "Open Latest Report"
+                  ],
+                  "data_dependencies": [
+                    "runs_history",
+                    "selection_model"
+                  ],
+                  "responsive_notes": "High-density table. Hides secondary columns (Latency, Cost) on 1440px/Narrow.",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "name": "ScheduleStatusPanel",
+              "role": "status-module",
+              "layout_region": "center-floating-right",
+              "primary_actions": [
+                "Open Schedule Results"
+              ],
+              "data_dependencies": [
+                "scheduler_health",
+                "mcp_status"
+              ],
+              "responsive_notes": "Compact module anchored bottom-right of workbench. Inset on 1920px; footer-integrated on Narrow.",
+              "children": []
+            },
+            {
+              "name": "RightInspector",
+              "role": "context-panel",
+              "layout_region": "right-panel",
+              "primary_actions": [
+                "Export Run Data",
+                "Full Report Redirect"
+              ],
+              "data_dependencies": [
+                "selected_run_id",
+                "telemetry_logs"
+              ],
+              "responsive_notes": "Fixed width (320px) on 1920px; toggleable Drawer on 1440px; full-screen Overlay on Narrow.",
+              "children": []
+            },
+            {
+              "name": "ProfileDrawer",
+              "role": "edit-sheet",
+              "layout_region": "ephemeral-overlay",
+              "primary_actions": [
+                "Save Profile",
+                "Cancel Changes"
+              ],
+              "data_dependencies": [
+                "selected_profile_form_data"
+              ],
+              "responsive_notes": "Right-anchored modal/drawer. Triggered from TopicPortfolio.",
+              "children": []
+            },
+            {
+              "name": "SettingsStatusCompact",
+              "role": "account-footer",
+              "layout_region": "sidebar-bottom",
+              "primary_actions": [
+                "Logout",
+                "Change local-first storage path"
+              ],
+              "data_dependencies": [
+                "storage_status",
+                "provider_config"
+              ],
+              "responsive_notes": "Collapsed into footer profile on 1440px; mobile settings page link on Narrow.",
+              "children": []
+            }
+          ],
+          "primary_actions": [],
+          "data_dependencies": [],
+          "responsive_notes": ""
+        },
+        "sidebar/nav": {
+          "name": "SideNavBar",
+          "role": "navigation",
+          "layout_region": "left-sidebar",
+          "children": [],
+          "primary_actions": [
+            "Navigate Dashboard",
+            "Navigate Topics",
+            "Navigate Runs",
+            "Navigate Evidence",
+            "Navigate Reports",
+            "Navigate Compare",
+            "Navigate Automations",
+            "Navigate Settings"
+          ],
+          "data_dependencies": [
+            "active_route",
+            "user_profile_metadata"
+          ],
+          "responsive_notes": "Fixed width (280px) on Desktop; Collapses to hamburger-menu drawer on Narrow layouts."
+        },
+        "command bar": {
+          "name": "GlobalCommandBar",
+          "role": "search-and-action-bar",
+          "layout_region": "top-center",
+          "children": [],
+          "primary_actions": [
+            "Global Search",
+            "New Research (Launch Flow)",
+            "Start Selected Profiles"
+          ],
+          "data_dependencies": [
+            "search_query",
+            "selection_state"
+          ],
+          "responsive_notes": "Glassmorphic overlay; remains sticky at top. Search input expands on 1920px."
+        },
+        "status strip": {
+          "name": "StatusStrip",
+          "role": "global-readout",
+          "layout_region": "bottom-center",
+          "children": [],
+          "primary_actions": [
+            "Open provider logs"
+          ],
+          "data_dependencies": [
+            "gemini_provider_status",
+            "stitch_session_state"
+          ],
+          "responsive_notes": "Minimal bar atop footer. Aggregates status into single-line icons on Narrow."
+        },
+        "main workbench": {
+          "name": "MainWorkbench",
+          "role": "main-workbench",
+          "layout_region": "center",
+          "children": [
+            {
+              "name": "TopicPortfolio",
+              "role": "dashboard-summary",
+              "layout_region": "workbench-top",
+              "primary_actions": [
+                "Add Topic Profile",
+                "Edit Selected Profile"
+              ],
+              "data_dependencies": [
+                "topic_metadata_list",
+                "telemetry_aggregate"
+              ],
+              "responsive_notes": "4-column grid at 1920px; 3-column at 1440px; 1-column list on Narrow.",
+              "children": []
+            },
+            {
+              "name": "RecentRunsTable",
+              "role": "data-grid",
+              "layout_region": "workbench-bottom",
+              "primary_actions": [
+                "Compare Selected Runs",
+                "Open Rerun Entry",
+                "Open Latest Report"
+              ],
+              "data_dependencies": [
+                "runs_history",
+                "selection_model"
+              ],
+              "responsive_notes": "High-density table. Hides secondary columns (Latency, Cost) on 1440px/Narrow.",
+              "children": []
+            }
+          ],
+          "primary_actions": [],
+          "data_dependencies": [],
+          "responsive_notes": "Flexible grid container. 12-column layout on Desktop; stack-flow on Narrow."
+        },
+        "topic portfolio": {
+          "name": "TopicPortfolio",
+          "role": "dashboard-summary",
+          "layout_region": "workbench-top",
+          "children": [],
+          "primary_actions": [
+            "Add Topic Profile",
+            "Edit Selected Profile"
+          ],
+          "data_dependencies": [
+            "topic_metadata_list",
+            "telemetry_aggregate"
+          ],
+          "responsive_notes": "4-column grid at 1920px; 3-column at 1440px; 1-column list on Narrow."
+        },
+        "recent runs table/list": {
+          "name": "RecentRunsTable",
+          "role": "data-grid",
+          "layout_region": "workbench-bottom",
+          "children": [],
+          "primary_actions": [
+            "Compare Selected Runs",
+            "Open Rerun Entry",
+            "Open Latest Report"
+          ],
+          "data_dependencies": [
+            "runs_history",
+            "selection_model"
+          ],
+          "responsive_notes": "High-density table. Hides secondary columns (Latency, Cost) on 1440px/Narrow."
+        },
+        "schedule status panel": {
+          "name": "ScheduleStatusPanel",
+          "role": "status-module",
+          "layout_region": "center-floating-right",
+          "children": [],
+          "primary_actions": [
+            "Open Schedule Results"
+          ],
+          "data_dependencies": [
+            "scheduler_health",
+            "mcp_status"
+          ],
+          "responsive_notes": "Compact module anchored bottom-right of workbench. Inset on 1920px; footer-integrated on Narrow."
+        },
+        "right inspector": {
+          "name": "RightInspector",
+          "role": "context-panel",
+          "layout_region": "right-panel",
+          "children": [],
+          "primary_actions": [
+            "Export Run Data",
+            "Full Report Redirect"
+          ],
+          "data_dependencies": [
+            "selected_run_id",
+            "telemetry_logs"
+          ],
+          "responsive_notes": "Fixed width (320px) on 1920px; toggleable Drawer on 1440px; full-screen Overlay on Narrow."
+        },
+        "profile drawer/modal": {
+          "name": "ProfileDrawer",
+          "role": "edit-sheet",
+          "layout_region": "ephemeral-overlay",
+          "children": [],
+          "primary_actions": [
+            "Save Profile",
+            "Cancel Changes"
+          ],
+          "data_dependencies": [
+            "selected_profile_form_data"
+          ],
+          "responsive_notes": "Right-anchored modal/drawer. Triggered from TopicPortfolio."
+        },
+        "settings/status compact area": {
+          "name": "SettingsStatusCompact",
+          "role": "account-footer",
+          "layout_region": "sidebar-bottom",
+          "children": [],
+          "primary_actions": [
+            "Logout",
+            "Change local-first storage path"
+          ],
+          "data_dependencies": [
+            "storage_status",
+            "provider_config"
+          ],
+          "responsive_notes": "Collapsed into footer profile on 1440px; mobile settings page link on Narrow."
+        }
+      },
+      "complete": true,
+      "present": true,
+      "missing_components": [],
+      "has_all_fields": true
+    }
+  },
+  "screen_images": {
+    "1920": {
+      "present": true,
+      "path": "design/stitch/manual/stitch-wide-1920.png",
+      "provenance": "from_stitch_manual_image",
+      "source": "manual_export",
+      "value": "design/stitch/manual/stitch-wide-1920.png"
+    },
+    "1440": {
+      "present": true,
+      "path": "design/stitch/manual/stitch-wide-1440.png",
+      "provenance": "from_stitch_manual_image",
+      "source": "manual_export",
+      "value": "design/stitch/manual/stitch-wide-1440.png"
+    },
+    "narrow": {
+      "present": true,
+      "path": "design/stitch/manual/stitch-narrow.png",
+      "provenance": "from_stitch_manual_image",
+      "source": "manual_export",
+      "value": "design/stitch/manual/stitch-narrow.png"
+    }
+  },
+  "design_dna_layout_notes": {
+    "present": true,
+    "provenance": "from_stitch_manual_design_dna",
+    "found_sections": [
+      "overall IA",
+      "menu placement rationale",
+      "wide desktop grid",
+      "1920px behavior",
+      "1440px behavior",
+      "narrow responsive behavior",
+      "action hierarchy",
+      "card/table density guidance",
+      "drawer/modal guidance",
+      "accessibility notes"
+    ],
+    "missing_sections": []
+  },
+  "provenance": {
+    "layout_structure": "from_stitch_component_hierarchy",
+    "component_hierarchy": "from_stitch_component_hierarchy",
+    "screen_1920": "from_stitch_manual_image",
+    "screen_1440": "from_stitch_manual_image",
+    "screen_narrow": "from_stitch_manual_image",
+    "design_dna": "from_stitch_manual_design_dna"
+  }
+}

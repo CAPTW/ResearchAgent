@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "defaultMode": "default",
+    "allow": [
+      "Bash(uv run python tools/local_research_mcp_server.py *)",
+      "Bash(uv run python tools/local_research_workflow.py *)",
+      "Bash(uv run pytest *)",
+      "Bash(npm run test *)",
+      "Bash(npm run build *)",
+      "Bash(pwsh scripts/run_local_research.ps1 *)",
+      "Bash(bash scripts/run_local_research.sh *)",
+      "Bash(uv run --with playwright python tools/browser_dashboard_settings_smoke.py *)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)",
+      "Read(./config/credentials.json)"
+    ]
+  }
+}

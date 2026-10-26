@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "XRML Paper Collector (development)",
+  "version": "0.1.0",
+  "description": "Collect explicitly selected arXiv PDFs into a connected local XRML job.",
+  "permissions": ["downloads", "nativeMessaging", "storage"],
+  "background": { "service_worker": "worker.js", "type": "module" },
+  "action": { "default_popup": "popup.html", "default_title": "XRML 논문 수집" }
+}

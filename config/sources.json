@@ -1,0 +1,32 @@
+{
+  "arxiv": {
+    "max_results": 60,
+    "sort_by": "submittedDate",
+    "sort_order": "descending",
+    "categories": [
+      "cs.CV",
+      "cs.AI",
+      "cs.RO",
+      "cs.GR",
+      "cs.HC"
+    ],
+    "queries": [
+      "\"augmented reality\" OR \"mixed reality\" OR \"virtual reality\" OR XR OR AR OR VR OR MR",
+      "\"egocentric\" OR \"head-mounted\" OR HMD OR \"inside-out\" tracking",
+      "SLAM OR \"visual-inertial\" OR VIO OR \"pose estimation\" OR \"6DoF\"",
+      "NeRF OR \"Gaussian splatting\" OR \"3D reconstruction\" OR \"novel view synthesis\"",
+      "\"foveated\" OR \"eye tracking\" OR \"gaze\"",
+      "\"hand tracking\" OR gesture OR \"body tracking\" OR \"avatar\""
+    ]
+  },
+  "openalex": {
+    "max_results": 25,
+    "sort_by": "relevance",
+    "sort_order": "descending",
+    "queries": [
+      "\"augmented reality\" machine learning",
+      "\"large language model\" agents",
+      "\"retrieval augmented generation\""
+    ]
+  }
+}

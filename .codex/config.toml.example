@@ -1,0 +1,23 @@
+#:schema https://developers.openai.com/codex/config-schema.json
+
+# Copy to .codex/config.toml only after you trust this project.
+# This example is intentionally local-first for the repo workflow.
+# Recommended working directory: repo root.
+# Recommended local-only approval policy: never.
+# Recommended local-only sandbox mode: danger-full-access.
+
+project_root_markers = []
+profile = "local_research"
+
+[profiles.local_research]
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
+
+[mcp_servers.xrml_local]
+url = "http://127.0.0.1:8000/mcp"
+enabled = true
+required = false
+startup_timeout_sec = 10
+tool_timeout_sec = 60
+
+# Remote MCP/OAuth examples stay out of scope for the local workflow.

@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "manifest_kind": "paper_full_text_evidence_replay",
+  "topic_id": "large-language-models",
+  "paper_id": "2605.01143v1",
+  "title": "A Low-Latency Fraud Detection Layer for Detecting Adversarial Interaction Patterns in LLM-Powered Agents",
+  "pdf_url": "https://arxiv.org/pdf/2605.01143v1",
+  "pdf_domain": "arxiv.org",
+  "pdf_sha256": "ed349a32200ece6de092ccc0c1655eb9a3d615a5e8806520793caa06449c7f14",
+  "source_text_sha256": "3b488f7a14a8751908e9fe7e15a0d46f64c4182ee3c6bb3369bb282276b25fba",
+  "artifact_ref": "run:raw/2605.01143v1.txt",
+  "pages_artifact_ref": "run:raw/2605.01143v1.pages.json",
+  "pdf_artifact_ref": "run:raw/2605.01143v1.pdf",
+  "extraction": {
+    "page_count": 5,
+    "extracted_chars": 24000,
+    "extractor": "local_pdf_extraction",
+    "extraction_method": "pdftotext",
+    "pages_json_sha256": "0ebf2dec60ddef6fcf5b34d016511a1243762739cf606d1882687e84fe14557f"
+  },
+  "review": {
+    "expected_status": "reviewed",
+    "evidence_span_count": 1,
+    "evidence_span_metadata": [
+      {
+        "index": 1,
+        "label": "full_text_excerpt_1",
+        "char_start": 0,
+        "char_end": 420,
+        "text_sha256": "01f3a7e822194ced9d0673acbf8f3785439e3e5f68bb237c4e218b03f194e196"
+      }
+    ]
+  },
+  "acquisition": {
+    "command_provenance": ".\\.venv\\Scripts\\python.exe -m app.cli.review_refresh --topic large-language-models --unique-limit 100 --use-full-text --fetch-missing-pdf --download-limit 1 --allow-domain arxiv.org --extract-after-fetch --max-pdf-bytes 25000000 --download-timeout 30 --allow-bounded-pdf-fetch --target-paper-id 2605.01143v1 --exclude-paper-id 2604.26498v1 --exclude-paper-id 2605.03205v1",
+    "max_pdf_bytes": 25000000,
+    "download_limit": 1,
+    "allow_domain": "arxiv.org",
+    "timeout_seconds": 30,
+    "operator_gate_required": true,
+    "operator_gate_env_var": "ALLOW_BOUNDED_PDF_FETCH",
+    "operator_gate_env_value_required": "1"
+  },
+  "known_already_verified": [
+    {
+      "paper_id": "2604.26498v1",
+      "reason": "already_verified",
+      "manifest_path": "data/evidence_manifests/m19.3-large-language-models-2604.26498v1.json"
+    }
+  ],
+  "known_exclusions": [
+    {
+      "paper_id": "2605.03205v1",
+      "reason": "file_too_large",
+      "max_pdf_bytes": 25000000
+    }
+  ],
+  "coverage": {
+    "before_full_text_reviewed_unique_count": 28,
+    "after_full_text_reviewed_unique_count": 29,
+    "topic_relevant_unique_count": 524
+  },
+  "portability": {
+    "do_not_commit_pdf": true,
+    "do_not_commit_full_text": true,
+    "do_not_commit_pages_json": true,
+    "replay_requires_bounded_network": true
+  },
+  "created_from_commit": "f95f7e3",
+  "notes": [
+    "Local runtime state depends on ignored DB/storage.",
+    "Verifier checks local state; it does not reconstruct it offline.",
+    "No PDF bytes, full extracted text, pages content, secrets, or long verbatim paper passages are included.",
+    "The already verified 2604.26498v1 paper is recorded separately from known_exclusions because the verifier treats known_exclusions as papers that must not be reviewed."
+  ]
+}

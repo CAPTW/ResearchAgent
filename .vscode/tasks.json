@@ -1,0 +1,36 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "XRML: Run pipeline (all steps)",
+      "type": "shell",
+      "command": "python",
+      "args": [
+        "tools/pipeline.py",
+        "--top",
+        "3",
+        "--weekly-top",
+        "15",
+        "--experiment",
+        "--rank",
+        "1"
+      ],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "XRML: Run pipeline (no experiment)",
+      "type": "shell",
+      "command": "python",
+      "args": [
+        "tools/pipeline.py",
+        "--top",
+        "3",
+        "--weekly-top",
+        "15"
+      ],
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}

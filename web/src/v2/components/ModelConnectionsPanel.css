@@ -1,0 +1,18 @@
+.model-connections-panel { min-width: 0; }
+.model-connections-content { display: grid; gap: 12px; padding: 16px; color: var(--text-primary); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.model-connections-content p { margin: 0; }
+.model-connections-content > .v2-button { justify-self: start; }
+.model-connections-summary { display: grid; gap: 4px; padding: 12px; border: 1px solid var(--border-default); border-radius: 6px; background: var(--surface-hover); }
+.model-connections-fields { display: grid; gap: 12px; min-width: 0; margin: 0; border: 0; padding: 0; }
+.model-connections-choice { max-width: 480px; }
+.model-connections-fields label { display: grid; gap: 6px; }
+.model-connections-fields input, .model-connections-fields select { box-sizing: border-box; width: 100%; min-width: 0; min-height: 36px; border: 1px solid var(--border-strong); border-radius: 5px; padding: 8px 10px; background: var(--surface-elevated); color: var(--text-primary); font: inherit; }
+.model-connections-fields input:focus-visible, .model-connections-fields select:focus-visible, .model-connections-content a:focus-visible { outline: 2px solid var(--accent-primary, #3f82ff); outline-offset: 2px; }
+.model-connections-fields:disabled { opacity: .7; }
+.model-connections-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 14px; }
+.model-connection-card { display: grid; gap: 10px; min-width: 0; margin: 0; border: 1px solid var(--border-default); border-radius: 8px; padding: 12px; }
+.model-connection-card legend { max-width: 100%; padding: 0 5px; font-weight: 700; }
+.model-connection-card a { justify-self: start; color: var(--accent-primary, #3f82ff); text-underline-offset: 3px; }
+.model-connections-instructions { white-space: pre-wrap; }
+.model-connections-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 760px) { .model-connections-grid { grid-template-columns: minmax(0, 1fr); } }

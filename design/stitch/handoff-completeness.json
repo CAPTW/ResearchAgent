@@ -1,0 +1,16 @@
+{
+  "selected_project_id": "projects/672383315129384900",
+  "has_project_metadata": true,
+  "has_tokens": true,
+  "has_typography": true,
+  "has_colors": true,
+  "has_spacing": true,
+  "has_thumbnail": true,
+  "has_screen_image": true,
+  "has_layout_structure": false,
+  "has_component_hierarchy": false,
+  "has_implementation_notes": true,
+  "enough_for_implementation": true,
+  "missing_fields": [],
+  "recommended_next_action": "Proceed to implementation handoff."
+}

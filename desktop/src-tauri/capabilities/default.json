@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main-capability",
+  "description": "Bounded capability for the XRML native workspace loading surface.",
+  "windows": ["main"],
+  "remote": {
+    "urls": ["http://127.0.0.1:*/app*"]
+  },
+  "permissions": ["core:default", "core:window:allow-set-theme", "allow-restart-sidecar"]
+}

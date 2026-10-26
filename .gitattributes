@@ -1,0 +1,49 @@
+# Normalize line endings so a clone is byte-identical across platforms.
+# Without this, a Windows clone commits CRLF and every diff against a Linux
+# contributor's tree is whole-file noise.
+* text=auto eol=lf
+
+# Windows-only entry points must keep CRLF or PowerShell can misparse them.
+*.ps1   text eol=crlf
+*.psm1  text eol=crlf
+*.cmd   text eol=crlf
+*.bat   text eol=crlf
+
+# Shell scripts must keep LF even when checked out on Windows.
+*.sh    text eol=lf
+
+*.py    text diff=python
+*.md    text diff=markdown
+*.ts    text
+*.tsx   text
+*.js    text
+*.jsx   text
+*.json  text
+*.toml  text
+*.yml   text
+*.yaml  text
+*.css   text
+*.html  text
+*.sql   text
+
+# Records, not prose. Keep LF so integrity hashes stay stable.
+*.jsonl text eol=lf
+
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.pdf   binary
+*.zip   binary
+*.gz    binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.webm  binary
+*.sqlite3 binary
+
+# Lockfiles are generated; collapse them in review and in language stats.
+uv.lock              linguist-generated=true -diff
+web/package-lock.json linguist-generated=true -diff

@@ -1,0 +1,70 @@
+services:
+  - type: web
+    name: xrml-research-agent-staging
+    runtime: python
+    plan: starter
+    autoDeployTrigger: off
+    healthCheckPath: /health
+    disk:
+      name: xrml-research-agent-staging-disk
+      mountPath: /opt/render/project/src/storage
+      sizeGB: 1
+    buildCommand: |
+      uv sync --extra dev
+      cd web
+      npm ci
+      WEB_APP_BASE_PATH=/app npm run build
+    startCommand: uv run uvicorn app.main:create_app --factory --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.12
+      - key: NODE_VERSION
+        value: 22.22.0
+      - key: AUTH_MODE
+        value: oidc
+      - key: APP_BASE_URL
+        value: https://xrml-research-agent-staging.onrender.com
+      - key: WEB_APP_BASE_PATH
+        value: /app
+      - key: XRML_ENVIRONMENT
+        value: staging
+      - key: XRML_DEPLOYMENT_PROFILE
+        value: render-single-service
+      - key: XRML_STRICT_ENV_VALIDATION
+        value: "true"
+      - key: XRML_DATA_DIR
+        value: /opt/render/project/src/storage
+      - key: LOG_FORMAT
+        value: json
+      - key: LOG_LEVEL
+        value: INFO
+      - key: TOPIC_SCHEDULER_MODE
+        value: embedded
+      - key: TOPIC_SCHEDULER_ENABLED
+        value: "true"
+      - key: SCHEDULER_MODE
+        value: single_node_file_backed
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: COOKIE_SAMESITE
+        value: lax
+      - key: TRUST_PROXY_HEADERS
+        value: "true"
+      - key: ALLOWED_ORIGINS
+        value: https://xrml-research-agent-staging.onrender.com
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: OIDC_ISSUER
+        sync: false
+      - key: OIDC_CLIENT_ID
+        sync: false
+      - key: OIDC_CLIENT_SECRET
+        sync: false
+      - key: OIDC_AUDIENCE
+        sync: false
+      - key: ADMIN_USER_IDS
+        sync: false
+      - key: ADMIN_USER_EMAILS
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false

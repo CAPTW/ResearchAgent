@@ -1,0 +1,18 @@
+{
+  "selected_project_id": "projects/672383315129384900",
+  "has_project_metadata": true,
+  "has_tokens_or_theme": true,
+  "has_screen_1920": true,
+  "has_screen_1440": true,
+  "has_screen_narrow": true,
+  "has_structure": true,
+  "has_component_hierarchy": true,
+  "has_layout_structure": true,
+  "has_design_dna_layout_notes": true,
+  "has_implementation_notes": true,
+  "no_secret_leakage": true,
+  "label": "Stitch handoff ready for implementation",
+  "recommended_next_action": "Proceed with implementation prompt and run implementation-phase validation.",
+  "missing_fields": [],
+  "enough_for_implementation": true
+}

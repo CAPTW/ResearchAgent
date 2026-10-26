@@ -1,0 +1,12 @@
+.saved-analysis-panel label { display: grid; gap: 6px; margin: 12px 0; }
+.saved-analysis-panel input, .saved-analysis-panel select, .saved-analysis-panel textarea { width: 100%; min-width: 0; box-sizing: border-box; padding: 8px; background: var(--surface-app); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: 4px; font: inherit; }
+.saved-analysis-panel textarea { resize: vertical; }
+.saved-analysis-panel button { margin: 4px; }
+.saved-analysis-panel :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.saved-analysis-journal { overflow-wrap: anywhere; }
+.saved-analysis-journal fieldset { min-width: 0; }
+.saved-analysis-journal .analysis-journal-choice { display: flex; align-items: center; gap: 8px; }
+.saved-analysis-journal input[type="checkbox"] { width: 18px; height: 18px; flex: 0 0 auto; }
+.captured-analysis-save { margin: 16px 0; padding: 12px; border: 1px solid var(--border-default); border-radius: 6px; min-width: 0; overflow-wrap: anywhere; }
+.captured-analysis-save pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.captured-analysis-save button { max-width: 100%; white-space: normal; }

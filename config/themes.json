@@ -1,0 +1,52 @@
+{
+  "Gaze/Foveation": [
+    "gaze",
+    "eye tracking",
+    "eye-tracking",
+    "foveated",
+    "saliency"
+  ],
+  "Avatars/3DGS": [
+    "avatar",
+    "gaussian",
+    "splatting",
+    "3dgs",
+    "talking head",
+    "blendshape"
+  ],
+  "SLAM/VIO": [
+    "slam",
+    "vio",
+    "odometry",
+    "inertial",
+    "lidar"
+  ],
+  "Egocentric/Body": [
+    "egocentric",
+    "full-body",
+    "pose",
+    "hand tracking",
+    "gesture"
+  ],
+  "Privacy/Security": [
+    "privacy",
+    "secure",
+    "federated",
+    "provenance"
+  ],
+  "HCI/Interaction": [
+    "interaction",
+    "mixed reality",
+    "virtual reality",
+    "xr",
+    "ar",
+    "vr"
+  ],
+  "Robotics": [
+    "humanoid",
+    "robot",
+    "quadruped",
+    "teleoperation",
+    "navigation"
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "screen": {
+    "name": "XRML Research Dashboard Root",
+    "role": "viewport-root",
+    "layout_region": "fullscreen",
+    "children": [
+      {
+        "name": "SideNavBar",
+        "role": "navigation",
+        "layout_region": "left-sidebar",
+        "primary_actions": [
+          "Navigate Dashboard",
+          "Navigate Topics",
+          "Navigate Runs",
+          "Navigate Evidence",
+          "Navigate Reports",
+          "Navigate Compare",
+          "Navigate Automations",
+          "Navigate Settings"
+        ],
+        "data_dependencies": ["active_route", "user_profile_metadata"],
+        "responsive_notes": "Fixed width (280px) on Desktop; Collapses to hamburger-menu drawer on Narrow layouts.",
+        "children": []
+      },
+      {
+        "name": "GlobalCommandBar",
+        "role": "search-and-action-bar",
+        "layout_region": "top-center",
+        "primary_actions": ["Global Search", "New Research (Launch Flow)", "Start Selected Profiles"],
+        "data_dependencies": ["search_query", "selection_state"],
+        "responsive_notes": "Glassmorphic overlay; remains sticky at top. Search input expands on 1920px.",
+        "children": []
+      },
+      {
+        "name": "StatusStrip",
+        "role": "global-readout",
+        "layout_region": "bottom-center",
+        "primary_actions": ["Open provider logs"],
+        "data_dependencies": ["gemini_provider_status", "stitch_session_state"],
+        "responsive_notes": "Minimal bar atop footer. Aggregates status into single-line icons on Narrow.",
+        "children": []
+      },
+      {
+        "name": "MainWorkbench",
+        "role": "main-workbench",
+        "layout_region": "center",
+        "primary_actions": [],
+        "data_dependencies": [],
+        "responsive_notes": "Flexible grid container. 12-column layout on Desktop; stack-flow on Narrow.",
+        "children": [
+          {
+            "name": "TopicPortfolio",
+            "role": "dashboard-summary",
+            "layout_region": "workbench-top",
+            "primary_actions": ["Add Topic Profile", "Edit Selected Profile"],
+            "data_dependencies": ["topic_metadata_list", "telemetry_aggregate"],
+            "responsive_notes": "4-column grid at 1920px; 3-column at 1440px; 1-column list on Narrow.",
+            "children": []
+          },
+          {
+            "name": "RecentRunsTable",
+            "role": "data-grid",
+            "layout_region": "workbench-bottom",
+            "primary_actions": ["Compare Selected Runs", "Open Rerun Entry", "Open Latest Report"],
+            "data_dependencies": ["runs_history", "selection_model"],
+            "responsive_notes": "High-density table. Hides secondary columns (Latency, Cost) on 1440px/Narrow.",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "ScheduleStatusPanel",
+        "role": "status-module",
+        "layout_region": "center-floating-right",
+        "primary_actions": ["Open Schedule Results"],
+        "data_dependencies": ["scheduler_health", "mcp_status"],
+        "responsive_notes": "Compact module anchored bottom-right of workbench. Inset on 1920px; footer-integrated on Narrow.",
+        "children": []
+      },
+      {
+        "name": "RightInspector",
+        "role": "context-panel",
+        "layout_region": "right-panel",
+        "primary_actions": ["Export Run Data", "Full Report Redirect"],
+        "data_dependencies": ["selected_run_id", "telemetry_logs"],
+        "responsive_notes": "Fixed width (320px) on 1920px; toggleable Drawer on 1440px; full-screen Overlay on Narrow.",
+        "children": []
+      },
+      {
+        "name": "ProfileDrawer",
+        "role": "edit-sheet",
+        "layout_region": "ephemeral-overlay",
+        "primary_actions": ["Save Profile", "Cancel Changes"],
+        "data_dependencies": ["selected_profile_form_data"],
+        "responsive_notes": "Right-anchored modal/drawer. Triggered from TopicPortfolio.",
+        "children": []
+      },
+      {
+        "name": "SettingsStatusCompact",
+        "role": "account-footer",
+        "layout_region": "sidebar-bottom",
+        "primary_actions": ["Logout", "Change local-first storage path"],
+        "data_dependencies": ["storage_status", "provider_config"],
+        "responsive_notes": "Collapsed into footer profile on 1440px; mobile settings page link on Narrow.",
+        "children": []
+      }
+    ]
+  }
+}

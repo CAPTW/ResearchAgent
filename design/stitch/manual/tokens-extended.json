@@ -1,0 +1,75 @@
+{
+  "project": "XRML Research Dashboard Redesign",
+  "theme": "The Observational Monolith",
+  "tokens": {
+    "colors": {
+      "base": {
+        "surface": "#0b1326",
+        "on-surface": "#dae2fd",
+        "on-surface-variant": "#c7c4d8"
+      },
+      "surfaces": {
+        "container-lowest": "#060e20",
+        "container-low": "#131b2e",
+        "container": "#171f33",
+        "container-high": "#222a3d",
+        "container-highest": "#2d3449",
+        "bright": "#31394d"
+      },
+      "brand": {
+        "primary": "#c3c0ff",
+        "primary-container": "#4f46e5",
+        "on-primary": "#1d00a5",
+        "on-primary-fixed-variant": "#3323cc"
+      },
+      "semantic": {
+        "secondary-container": "#00a572",
+        "on-secondary-container": "#00311f",
+        "success": "#4edea3",
+        "warning": "#ffb95f",
+        "error": "#ffb4ab",
+        "on-error": "#690005"
+      },
+      "gradients": {
+        "primary-action": "linear-gradient(135deg, #c3c0ff 0%, #4f46e5 100%)"
+      }
+    },
+    "typography": {
+      "family": "Inter",
+      "scales": {
+        "display-sm": {
+          "size": "2.25rem",
+          "weight": "600",
+          "tracking": "-0.02em"
+        },
+        "headline-sm": {
+          "size": "1.5rem",
+          "weight": "500",
+          "tracking": "tight"
+        },
+        "title-md": {
+          "size": "1.125rem",
+          "weight": "500"
+        },
+        "label-sm": {
+          "size": "0.6875rem",
+          "weight": "700",
+          "case": "uppercase",
+          "tracking": "0.05em"
+        }
+      }
+    },
+    "spacing": {
+      "base": "4px",
+      "scale": [0, 4, 8, 12, 16, 24, 32, 48, 64]
+    },
+    "radius": {
+      "sm": "0.125rem",
+      "md": "0.375rem"
+    },
+    "shadows": {
+      "ambient": "0px 24px 48px rgba(6, 14, 32, 0.5)",
+      "backdrop-blur": "24px"
+    }
+  }
+}
