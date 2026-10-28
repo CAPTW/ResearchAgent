@@ -21,7 +21,10 @@ seeded = test_temporal_memory.seeded
 
 
 @pytest.fixture
-def range_source(seeded):
+def range_source(seeded, monkeypatch):
+    # Paper request/history checks need a store without unrelated scheduler writes.
+    # Individual unsafe-configuration tests can still explicitly enable the worker.
+    monkeypatch.setenv("TOPIC_SCHEDULER_ENABLED", "0")
     topic = seeded.TOPIC_A_ID
     item = paper_bank.list_topic_papers(topic, page_size=100)["items"][0]
     occurrence = item["compatibility"]["occurrences"][0]

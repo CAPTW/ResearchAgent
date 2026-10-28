@@ -171,6 +171,32 @@ still requires a subsequent CI observation. Failure assertions now retain step
 statuses and fixed exception class names without echoing raw logs or environment
 values. These repairs do not establish a full backend or Windows CI pass yet.
 
+The next snapshot, public `ffacf415`, has a completed
+[CI run](https://github.com/CAPTW/ResearchAgent/actions/runs/40675067225). Windows
+passed all 306 selected operator/native tests with exact Python 3.12.12. Frontend
+passed 13 extension tests, 1,080 integration tests and its production build.
+Backend passed lint and the existing mypy debt checks, then stopped with 4,968
+passed, 52 skipped and one failed full-database comparison in the Anthropic
+offline default-deny test. It was not a timeout. Later PDF, compile, startup and
+fixture-immutability steps were skipped; artifacts were empty.
+
+A bounded control using that exact archive traced independent scheduler writes
+to the index timestamp even without HTTP requests. The original case happened
+to pass under the instrumented timing, so its repeat success is not the causal
+evidence. The shared paper-range fixture now defaults that unrelated scheduler
+off, matching the existing app-factory convention. Tests of unsafe configuration
+can still explicitly enable it afterward. No production scheduling, shared client,
+authorization or whole-database assertion was changed. The original hosted trace
+was abbreviated; this local control establishes the fixture's independent writer,
+not a captured stack trace from the hosted failure. The next CI result must still
+qualify the entire backend suite.
+The exact CI7 archive plus this single fixture overlay passed 278 Linux tests
+across 15 affected modules. Eleven focused denial/configuration checks overlap
+that run. Two other consumers already apply the same scheduler setting before
+app construction and were inspected without rerunning them. Independent review,
+49 public-link checks and scoped Ruff passed. These are bounded fixture checks,
+not a completed whole-backend run or actual Provider execution.
+
 `tools/package_source_distribution.py` reads the committed Git object tree and
 its committed content policy. `--allow-dirty` exports **committed HEAD only**;
 it does not include pending changes or let an uncommitted policy admit private
