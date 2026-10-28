@@ -915,7 +915,6 @@ def test_tracked_jsonl_files_are_readable_by_the_strict_reader() -> None:
     )
     if tracked.returncode == 0:
         paths = [repo_root / name for name in tracked.stdout.split("\0") if name.strip()]
-        assert paths, "expected the repository to track at least one .jsonl file"
     else:
         # A published source archive is not a Git checkout, so `git ls-files`
         # cannot enumerate anything. Every shipped `.jsonl` is on disk though,
@@ -927,11 +926,15 @@ def test_tracked_jsonl_files_are_readable_by_the_strict_reader() -> None:
             for path in repo_root.rglob("*.jsonl")
             if not skip.intersection(path.relative_to(repo_root).parts)
         ]
-        # No minimum here. The repository tracks `.jsonl` under `data/queues` and
-        # `data/papers/raw`, both of which the package boundary excludes, so a
-        # source archive legitimately ships none. The invariant being tested is
-        # "nothing shipped is corrupt", which an empty set satisfies; demanding
-        # a file would be asserting a property of the checkout, not the artifact.
+    if not paths:
+        # Both a public Git root and an extracted archive can intentionally ship
+        # no JSONL. Admit that only after validating the complete public document
+        # boundary; a damaged development checkout must retain its nonempty gate.
+        from tests.source_tree_context import inspect_source_tree
+
+        assert inspect_source_tree(repo_root).is_public, (
+            "expected the development repository to track at least one .jsonl file"
+        )
 
     corrupt: list[str] = []
     for path in paths:

@@ -4,10 +4,18 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import uuid
 from pathlib import Path
 
+import pytest
+
+
+pytestmark = pytest.mark.skipif(
+    sys.platform != "win32",
+    reason="Windows PowerShell operator scripts; covered by the windows-contracts CI job",
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 

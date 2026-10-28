@@ -13,7 +13,7 @@ from app.services.providers.codex_journal_plan import sha
 def runtime_at(root: Path) -> process.CliRuntime:
     home = root / "empty-home"
     home.mkdir()
-    return process.CliRuntime((sys.executable,), {"CODEX_HOME": str(home)}, root / "attempts")
+    return process.CliRuntime((str(Path(sys.executable).resolve()),), {"CODEX_HOME": str(home)}, root / "attempts")
 
 
 def run(runtime: process.CliRuntime):
@@ -26,7 +26,7 @@ def test_home_must_be_an_existing_directory(tmp_path, kind):
     if kind == "file":
         home.write_text("synthetic fixture", encoding="utf-8")
     with pytest.raises(ValueError, match="^journal_codex_runtime_invalid$"):
-        process.CliRuntime((sys.executable,), {"CODEX_HOME": str(home)}, tmp_path / "attempts")
+        process.CliRuntime((str(Path(sys.executable).resolve()),), {"CODEX_HOME": str(home)}, tmp_path / "attempts")
     assert not (tmp_path / "attempts").exists()
 
 
@@ -59,7 +59,7 @@ def test_resolved_home_is_the_actual_child_environment(tmp_path, monkeypatch):
     prefix = tmp_path / "prefix"
     prefix.mkdir()
     environment = {"CODEX_HOME": str(prefix / ".." / home.name)}
-    runtime = process.CliRuntime((sys.executable,), environment, tmp_path / "attempts")
+    runtime = process.CliRuntime((str(Path(sys.executable).resolve()),), environment, tmp_path / "attempts")
     environment["CODEX_HOME"] = str(tmp_path / "caller-mutation")
     capture = Mock(return_value=None)
     monkeypatch.setattr(process, "capture", capture)

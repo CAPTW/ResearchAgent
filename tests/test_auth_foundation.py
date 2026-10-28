@@ -298,6 +298,9 @@ def test_oauth_metadata_validation_api_writes_nothing_and_returns_secret_policy(
 
 
 def test_capability_model_does_not_bypass_provider_acceptance_gate(tmp_path, monkeypatch) -> None:
+    # Both initial readiness and nested routing see a synthetic available CLI;
+    # its presence still cannot bypass acceptance or research-output gates.
+    monkeypatch.setattr(ai_provider.provider_configurations, "_command_exists", lambda _command: True)
     monkeypatch.setattr(bootstrap, "STORAGE_ROOT", tmp_path / "storage" / "runs")
     paper_reviews.upsert_review(_review(1))
     admin = ProductUser(
@@ -442,6 +445,7 @@ def test_topic_configuration_save_allowed_and_denied_are_audited(app_factory, is
 
 
 def test_provider_acceptance_smoke_audits_risk_without_bypassing_gate(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(ai_provider.provider_configurations, "_command_exists", lambda _command: True)
     audit_path = tmp_path / "operator-audit" / "events.jsonl"
     monkeypatch.setattr(operator_audit, "AUDIT_LOG_PATH", audit_path)
     monkeypatch.setattr(bootstrap, "STORAGE_ROOT", tmp_path / "storage" / "runs")

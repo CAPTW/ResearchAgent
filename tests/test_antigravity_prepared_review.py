@@ -4,6 +4,7 @@ from dataclasses import replace
 import importlib
 import json
 import os
+from pathlib import Path
 import sys
 
 import pytest
@@ -86,7 +87,7 @@ sys.exit(1 if mode in {'failed','error'} else 7 if mode=='nonzero' else 0)
 '''.replace("MODE", repr(mode)), encoding="utf-8")
     environment = {key: os.environ[key] for key in ("SYSTEMROOT", "WINDIR") if key in os.environ}
     environment.update(TEMP=str(root), TMP=str(root), PYTHONIOENCODING="utf-8")
-    return process.AntigravityRuntime((sys.executable, str(script)), environment, root / "attempts")
+    return process.AntigravityRuntime((str(Path(sys.executable).resolve()), str(script)), environment, root / "attempts")
 
 
 def provider_at(root, *, mode="success", stream=None, timeout=30):
@@ -323,17 +324,17 @@ def test_preflight_drift_or_changed_request_refuses_before_child(tmp_path, chang
 def test_environment_credentials_cloud_and_routing_are_not_accepted(tmp_path, key):
     _, _, process = modules()
     with pytest.raises(ValueError, match="runtime_invalid"):
-        process.AntigravityRuntime((sys.executable,), {key: "fixture"}, tmp_path / "attempts")
+        process.AntigravityRuntime((str(Path(sys.executable).resolve()),), {key: "fixture"}, tmp_path / "attempts")
 
 
 def test_profile_cannot_be_replaced_or_fixed_updater_policy_disabled(tmp_path, monkeypatch):
     _, _, process = modules()
     monkeypatch.setenv("HOME", "fixture-existing-profile")
     with pytest.raises(ValueError, match="runtime_invalid"):
-        process.AntigravityRuntime((sys.executable,), {"HOME": "different"}, tmp_path / "attempts")
+        process.AntigravityRuntime((str(Path(sys.executable).resolve()),), {"HOME": "different"}, tmp_path / "attempts")
     with pytest.raises(ValueError, match="runtime_invalid"):
-        process.AntigravityRuntime((sys.executable,), {"AGY_CLI_DISABLE_AUTO_UPDATE": "false"}, tmp_path / "attempts")
-    runtime = process.AntigravityRuntime((sys.executable,), {"HOME": "fixture-existing-profile"}, tmp_path / "attempts")
+        process.AntigravityRuntime((str(Path(sys.executable).resolve()),), {"AGY_CLI_DISABLE_AUTO_UPDATE": "false"}, tmp_path / "attempts")
+    runtime = process.AntigravityRuntime((str(Path(sys.executable).resolve()),), {"HOME": "fixture-existing-profile"}, tmp_path / "attempts")
     monkeypatch.setenv("HOME", "changed-ambient-profile")
     with pytest.raises(ValueError, match="runtime_changed"):
         runtime.verify()

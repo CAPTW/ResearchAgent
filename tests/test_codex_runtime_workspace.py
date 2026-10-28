@@ -12,7 +12,7 @@ from app.services.providers.codex_journal_plan import sha
 def runtime_at(root: Path, workspace: Path) -> process.CliRuntime:
     home = root / "empty-home"
     home.mkdir(exist_ok=True)
-    return process.CliRuntime((sys.executable,), {"CODEX_HOME": str(home)}, workspace)
+    return process.CliRuntime((str(Path(sys.executable).resolve()),), {"CODEX_HOME": str(home)}, workspace)
 
 
 @pytest.mark.parametrize("nested", [False, True])

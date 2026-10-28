@@ -59,7 +59,7 @@ else: raise AssertionError('unexpected command')
     home.mkdir()
     (home / "auth.json").write_text("private original credentials must not be read", encoding="utf-8")
     (home / "config.toml").write_text("private original configuration must not be read", encoding="utf-8")
-    config = dict(schema_version="CODEX_JOURNAL_PREVIEW_CONFIG_V1", launcher=[sys.executable, str(script)],
+    config = dict(schema_version="CODEX_JOURNAL_PREVIEW_CONFIG_V1", launcher=[str(Path(sys.executable).resolve()), str(script)],
         environment=dict(CODEX_HOME=str(home), PATH="private original path", HOME=str(home),
                          **{key: os.environ[key] for key in ("SYSTEMROOT", "WINDIR") if key in os.environ}),
         workspace=str(root / "original-workspace"), reasoning_effort="low", timeout_seconds=30.0)
@@ -75,8 +75,14 @@ def calls(path: Path) -> list[dict]:
 def test_success_observation_exact_commands_isolation_and_cleanup(tmp_path, monkeypatch):
     path, config = fixture_config(tmp_path / "fake")
     scratch = tmp_path / "scratch"
-    for key in ("OPENAI_API_KEY", "CODEX_API_KEY", "CODEX_ACCESS_TOKEN", "HTTPS_PROXY", "NODE_OPTIONS", "PYTHONPATH"):
+    for key in ("OPENAI_API_KEY", "CODEX_API_KEY", "CODEX_ACCESS_TOKEN", "HTTPS_PROXY", "NODE_OPTIONS", "PYTHONPATH", "LC_CTYPE"):
         monkeypatch.setenv(key, "must-not-be-inherited")
+    launched_environments = []
+    real_popen = subprocess.Popen
+    def recording_popen(*args, **kwargs):
+        launched_environments.append(dict(kwargs["env"]))
+        return real_popen(*args, **kwargs)
+    monkeypatch.setattr(subprocess, "Popen", recording_popen)
     real_open = Path.open
     def guarded_open(self, *args, **kwargs):
         if self.is_relative_to(Path(config["environment"]["CODEX_HOME"])):
@@ -96,10 +102,17 @@ def test_success_observation_exact_commands_isolation_and_cleanup(tmp_path, monk
     assert [call["args"] for call in recorded] == [
         ["--version"], ["exec", "--help"], ["features", "list", *[part for setting in CONFIG for part in ("-c", setting)]]]
     assert len({call["env"]["CODEX_HOME"] for call in recorded}) == 3
-    for call in recorded:
+    assert len(launched_environments) == len(recorded) == 3
+    for call, launched_environment in zip(recorded, launched_environments, strict=True):
         assert call["stdin"] == ""
         assert Path(call["cwd"]).is_relative_to(scratch)
-        assert set(call["env"]) <= {"SYSTEMROOT", "WINDIR", "HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA", "CODEX_HOME", "TEMP", "TMP"}
+        assert set(launched_environment) <= {"SYSTEMROOT", "WINDIR", "HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA", "CODEX_HOME", "TEMP", "TMP"}
+        child_environment = dict(call["env"])
+        # PEP 538: the Unix Python fixture can add LC_CTYPE during startup.
+        # Check the actual launch environment separately so no inherited value is excused.
+        if os.name == "posix" and "LC_CTYPE" in child_environment:
+            assert child_environment.pop("LC_CTYPE") in {"C.UTF-8", "C.utf8", "UTF-8"}
+        assert child_environment == launched_environment
         for key in ("HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA", "CODEX_HOME", "TEMP", "TMP"):
             assert Path(call["env"][key]).is_relative_to(scratch)
     assert list(scratch.iterdir()) == [] and not Path(config["workspace"]).exists()

@@ -120,6 +120,7 @@ def test_topic_dashboard_recovers_dead_schedule_store_lock(client, isolated_run_
         ),
         encoding="utf-8",
     )
+    lock_bytes = lock_path.read_bytes()
 
     response = client.get("/api/topics/large-language-models/dashboard")
     body = response.json()
@@ -127,8 +128,9 @@ def test_topic_dashboard_recovers_dead_schedule_store_lock(client, isolated_run_
     assert response.status_code == 200, response.text
     assert body["topic"]["id"] == "large-language-models"
     assert body["scheduledTasks"] == []
-    assert any("GET 요청은 lock cleanup을 수행하지 않습니다" in warning for warning in body["warnings"])
+    assert any("예약 작업 저장소가 잠겨 있어 목록을 읽지 못했습니다" in warning for warning in body["warnings"])
     assert lock_path.exists() is True
+    assert lock_path.read_bytes() == lock_bytes
 
 
 def test_topic_dashboard_dead_pid_lock_regression_returns_valid_dashboard_contract(
@@ -150,6 +152,7 @@ def test_topic_dashboard_dead_pid_lock_regression_returns_valid_dashboard_contra
         ),
         encoding="utf-8",
     )
+    lock_bytes = lock_path.read_bytes()
 
     response = client.get("/api/topics/large-language-models/dashboard")
     body = response.json()
@@ -161,8 +164,9 @@ def test_topic_dashboard_dead_pid_lock_regression_returns_valid_dashboard_contra
     assert isinstance(body["warnings"], list)
     assert not any("Traceback" in warning for warning in body["warnings"])
     assert body["scheduledTasks"] == []
-    assert any("GET 요청은 lock cleanup을 수행하지 않습니다" in warning for warning in body["warnings"])
+    assert any("예약 작업 저장소가 잠겨 있어 목록을 읽지 못했습니다" in warning for warning in body["warnings"])
     assert lock_path.exists() is True
+    assert lock_path.read_bytes() == lock_bytes
     assert topic_schedules.schedule_store_lock_preflight(recover_stale=False)["store_status"] != "available"
 
 

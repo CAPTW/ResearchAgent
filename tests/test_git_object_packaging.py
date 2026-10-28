@@ -52,6 +52,9 @@ def _minimal_repo(root: Path) -> tuple[Path, str]:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(f"content of {rel}\nsecond line\n".encode())
     (repo / "run.sh").write_bytes(b"#!/bin/sh\necho hi\n")
+    # POSIX Git honors the on-disk execute bit on the later add -A too. Keep
+    # the explicit index mode below for filesystems that cannot represent it.
+    (repo / "run.sh").chmod(0o755)
     (repo / "blob.bin").write_bytes(bytes(range(256)))
     # The document policy ships inside the tree it governs, so a synthetic tree
     # needs its own -- the real inventory describes a different repository and

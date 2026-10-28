@@ -58,6 +58,14 @@ A few tests assert the *default* storage layout and therefore expect
 `XRML_DATA_DIR` to be unset. If one of those fails, re-run it on its own with
 `env -u XRML_DATA_DIR` before assuming you broke something.
 
+CI runs the general backend suite on Ubuntu 24.04. It stops at the first failure
+so a long failing run retains a concrete traceback; a passing run executes the
+whole suite. Windows PowerShell operator scripts are exercised only on Windows,
+alongside native-host, credential, child-process and file-lock contracts in an
+independent `windows-contracts` job. That job uses uv-managed Python 3.12.12 because
+the setup-python release manifest has no Windows build for that patch. These
+automated contracts do not replace installed-app or real-browser acceptance.
+
 ## Working on a change
 
 - Branch from the default branch. Keep a change focused on one concern.

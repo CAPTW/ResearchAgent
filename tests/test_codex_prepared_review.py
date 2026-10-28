@@ -73,7 +73,8 @@ if mode=='nonzero': sys.exit(7)
     home.mkdir()
     environment = {name: os.environ[name] for name in ("SYSTEMROOT", "WINDIR") if name in os.environ}
     environment.update(CODEX_HOME=str(home), TEMP=str(root), TMP=str(root), PYTHONIOENCODING="utf-8")
-    return CliRuntime((sys.executable, str(script)), environment, root / "attempts")
+    # Runtime identity requires a regular launcher file; POSIX venv Python can be a symlink.
+    return CliRuntime((str(Path(sys.executable).resolve()), str(script)), environment, root / "attempts")
 
 
 def provider_at(root, mode="success"):

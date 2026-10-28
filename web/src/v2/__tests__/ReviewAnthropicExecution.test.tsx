@@ -48,8 +48,31 @@ const posts = () => vi.mocked(api.fetchJson).mock.calls.filter(([, options]) => 
 const onBusy = vi.fn(), onPending = vi.fn(), onUpdated = vi.fn();
 const props = { root: base, preparationId, listing, selected: null, onBusy, onPending, onUpdated };
 async function open() { fireEvent.click(screen.getByText("검토 실행 조건·이력")); await screen.findByRole("button", { name: "Codex 검토 입력·실행 조건 확인" }); }
-async function inspect() { fireEvent.click(screen.getByRole("button", { name: "Anthropic 구조화 요청 확인" })); await screen.findByText(/선택 범위: 12–16/); }
+async function inspect() {
+  const button = screen.getByRole("button", { name: "Anthropic 구조화 요청 확인" });
+  // The panel mounts before its parent's initial history request enables actions.
+  await waitFor(() => expect(button).toHaveProperty("disabled", false));
+  fireEvent.click(button);
+  await screen.findByText(/선택 범위: 12–16/);
+}
 beforeEach(() => { vi.resetAllMocks(); vi.spyOn(crypto, "randomUUID").mockReturnValue(guid); vi.mocked(api.fetchJson).mockImplementation(async url => (url.endsWith("anthropic-preview") ? preview : listing) as never); });
+
+it("waits for initial history readiness before inspecting the synthetic preview", async () => {
+  let finishHistory!: (value: TransportList) => void;
+  const initialHistory = new Promise<TransportList>(resolve => { finishHistory = resolve; });
+  vi.mocked(api.fetchJson).mockImplementation(async url =>
+    (url.endsWith("anthropic-preview") ? preview : await initialHistory) as never);
+  render(<ReviewTransport root={root} id={preparationId}/>); await open();
+  expect(screen.getByRole("button", { name: "Anthropic 구조화 요청 확인" })).toHaveProperty("disabled", true);
+  expect(api.fetchJson).toHaveBeenCalledTimes(1); expect(posts()).toHaveLength(0);
+
+  const inspection = inspect();
+  expect(vi.mocked(api.fetchJson).mock.calls.filter(([url]) => url.endsWith("anthropic-preview"))).toHaveLength(0);
+  await act(async () => finishHistory(listing));
+  await inspection;
+  expect(vi.mocked(api.fetchJson).mock.calls.filter(([url]) => url.endsWith("anthropic-preview"))).toHaveLength(1);
+  expect(posts()).toHaveLength(0);
+});
 
 it("keeps preview, preparation, synthetic approval and execution separate, then opens the saved receipt", async () => {
   let detail: TransportDetail | null = null;

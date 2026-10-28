@@ -4,6 +4,7 @@ from dataclasses import replace
 import importlib
 import json
 import os
+from pathlib import Path
 import sys
 
 import pytest
@@ -103,7 +104,7 @@ time.sleep(30) # persistent ACP must be closed by the host, never quiet-time com
 '''.replace("mode=MODE", "mode=" + repr(mode)).replace("target_model=TARGET_MODEL", "target_model=" + repr(frozen["model"])), encoding="utf-8")
     environment = {key: os.environ[key] for key in ("SYSTEMROOT", "WINDIR") if key in os.environ}
     environment.update(TEMP=str(root), TMP=str(root), PYTHONIOENCODING="utf-8")
-    return process.GrokRuntime((sys.executable, str(script)), environment, root / "attempts")
+    return process.GrokRuntime((str(Path(sys.executable).resolve()), str(script)), environment, root / "attempts")
 
 
 def provider_at(root, *, mode="success", output=None, timeout=30):
@@ -188,7 +189,7 @@ def test_known_completed_invalid_review_is_not_unknown(tmp_path, raw):
 def test_credentials_and_routing_cannot_be_injected(tmp_path, key):
     _, _, process = modules()
     with pytest.raises(ValueError, match="runtime_invalid"):
-        process.GrokRuntime((sys.executable,), {key: "fixture"}, tmp_path / "attempts")
+        process.GrokRuntime((str(Path(sys.executable).resolve()),), {key: "fixture"}, tmp_path / "attempts")
 
 
 @pytest.mark.parametrize("change", ["request", "launcher", "workspace"])

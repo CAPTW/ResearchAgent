@@ -501,6 +501,7 @@ def test_command_provider_requires_explicit_live_allowance(tmp_path, monkeypatch
 
 def test_real_command_provider_requires_operator_acceptance_before_execution(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(bootstrap, "STORAGE_ROOT", tmp_path / "storage" / "runs")
+    monkeypatch.setattr(ai_provider.provider_configurations, "_command_exists", lambda _command: True)
     paper_reviews.upsert_review(_review(1))
 
     def fail_if_called(*args, **kwargs):
@@ -528,6 +529,7 @@ def test_real_command_provider_requires_operator_acceptance_before_execution(tmp
 
 def test_real_command_provider_records_operator_acceptance_without_note_text(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(bootstrap, "STORAGE_ROOT", tmp_path / "storage" / "runs")
+    monkeypatch.setattr(ai_provider.provider_configurations, "_command_exists", lambda _command: True)
     paper_reviews.upsert_review(_review(1))
 
     def fail_if_called(*args, **kwargs):
@@ -807,6 +809,7 @@ def test_review_refresh_cli_runs_fixture_command_provider_with_explicit_allowanc
 
 def test_review_refresh_cli_requires_acceptance_for_real_provider_config(tmp_path, monkeypatch, capsys) -> None:
     monkeypatch.setattr(bootstrap, "STORAGE_ROOT", tmp_path / "storage" / "runs")
+    monkeypatch.setattr(ai_provider.provider_configurations, "_command_exists", lambda _command: True)
     paper_reviews.upsert_review(_review(1))
 
     exit_code = review_refresh.main(
@@ -933,6 +936,7 @@ def test_provider_acceptance_smoke_real_provider_validates_before_storage(tmp_pa
 
 def test_review_refresh_cli_provider_acceptance_smoke_fails_closed_without_acceptance(tmp_path, monkeypatch, capsys) -> None:
     monkeypatch.setattr(bootstrap, "STORAGE_ROOT", tmp_path / "storage" / "runs")
+    monkeypatch.setattr(ai_provider.provider_configurations, "_command_exists", lambda _command: True)
     paper_reviews.upsert_review(_review(1))
 
     exit_code = review_refresh.main(

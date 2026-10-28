@@ -3,6 +3,8 @@ from copy import deepcopy
 from dataclasses import FrozenInstanceError
 import importlib
 import json
+from pathlib import Path
+import tempfile
 
 import pytest
 
@@ -67,7 +69,7 @@ def test_antigravity_journal_uses_frozen_request_and_separate_journal_validation
     assert (tmp_path / "cli" / "launches.log").read_text().splitlines() == ["launch"]
 
 
-ATTEMPT = "D:/synthetic-antigravity-journal/antigravity-review-fixture"
+ATTEMPT = str(Path(tempfile.gettempdir()) / "synthetic-antigravity-journal" / "antigravity-review-fixture")
 
 
 def stream_text(value, *, cwd=ATTEMPT):

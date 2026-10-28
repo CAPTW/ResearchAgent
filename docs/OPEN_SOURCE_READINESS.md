@@ -101,6 +101,33 @@ Whole-core Ruff passed. These are affected local scopes, not a full backend suit
 or actual Provider/browser acceptance. The next public CI must qualify Linux
 runtime behavior and the remaining backend checks.
 
+Source `0b38b7c` was published non-force as `e5610e7`, retaining only the four
+public commits. Its [CI run](https://github.com/CAPTW/ResearchAgent/actions/runs/40661198290)
+passed the actual Linux mypy baseline and verifier self-type checks. Frontend
+recorded 13 extension tests passed, 1,078 integration tests passed and one failed;
+the build was skipped. Backend collected 6,961 tests but was cancelled at 77%
+after multiple failures. No final pytest summary was produced; PDF, compile,
+startup and fixture-immutability checks did not run. This is not a passing suite.
+
+The frontend failure exposed another test readiness race: an inspect helper could
+click a disabled button while history was loading. A controlled deferred response
+reproduced the missed click. The corrected helper waits for the enabled state;
+all 35 tests in that module and TypeScript passed locally, with the product and
+timeouts unchanged. Other bounded fixture repairs cover synthetic CLI availability,
+the current locked-store warning, public-only JSONL absence and executable Git
+fixture modes. These do not replace a new CI run.
+
+An actual Linux reproduction identified virtualenv interpreter symlinks in fake
+CLI fixtures. Trusted synthetic launchers now resolve their interpreter path;
+production symlink rejection and tamper checks remain intact. Child Python can
+also add a locale variable on Unix, so the isolation test checks the exact
+environment passed to the process separately from that documented startup effect.
+Windows PowerShell operator tests now have an independent Windows CI job alongside
+native contracts. The general backend/POSIX suite stays on Linux and reports its
+first failure with a traceback. Hosted Windows acceptance remains unverified until
+that job executes; real Whale connection and installed first-start failure remain
+unresolved.
+
 `tools/package_source_distribution.py` reads the committed Git object tree and
 its committed content policy. `--allow-dirty` exports **committed HEAD only**;
 it does not include pending changes or let an uncommitted policy admit private

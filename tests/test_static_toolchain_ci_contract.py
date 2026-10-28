@@ -178,6 +178,31 @@ class TestCiWorkflow:
             block = BACKEND[BACKEND.index(step):][:400]
             assert "shell:" not in block
 
+    def test_windows_contracts_have_an_independent_exact_runtime(self) -> None:
+        windows = CI[CI.index("\n  windows-contracts:"):]
+        assert "runs-on: windows-2022" in windows
+        assert "needs:" not in windows
+        assert "uses: astral-sh/setup-uv@v5" in windows
+        assert 'python-version: "3.12.12"' in windows
+        assert "UV_PYTHON_INSTALL_DIR: ${{ runner.temp }}/xrml-python" in windows
+        assert "uv python install 3.12.12" in windows
+        assert FROZEN_SYNC in windows
+        assert "sys.platform == 'win32'" in windows
+        assert "sys.version_info[:3] == (3, 12, 12)" in windows
+        assert "actions/setup-python" not in windows
+
+    def test_windows_operator_and_native_scope_is_executed_without_masking(self) -> None:
+        windows = CI[CI.index("\n  windows-contracts:"):]
+        for module in ("activation_scripts", "browser_native_host", "model_credentials",
+                       "codex_journal", "grok_prepared_review", "topic_schedule_locking",
+                       "topic_scheduler", "report_transaction"):
+            assert f"tests/test_{module}.py" in windows
+        for forbidden in ("continue-on-error", "|| true", "|| exit 0", "--ignore", " -k "):
+            assert forbidden not in windows
+        assert "uv run --frozen --extra dev pytest -x --tb=short" in normalize(windows)
+        # Fail-fast changes failure reporting, not the selected Linux test scope.
+        assert "run: uv run --frozen --extra dev pytest -x --tb=short\n" in BACKEND
+
 
 class TestLocalCiParity:
     @pytest.mark.parametrize("command", [LOCK_CHECK, FROZEN_SYNC, RUFF, VERIFY])
@@ -448,15 +473,16 @@ class TestNegativeMutations:
 
     def check_ci(self, text: str) -> bool:
         """True when the mutated CI text still satisfies the enforced contract."""
-        flat = normalize(text)
+        backend = text[text.index("  backend-contracts:"):text.index("\n  frontend-contracts:")]
+        flat = normalize(backend)
         return (RUFF in flat and VERIFY in flat and LOCK_CHECK in flat
                 and FROZEN_SYNC in flat and SELF_MYPY_FLAGS in flat
                 and "--write-baseline" not in text
                 and "continue-on-error" not in text and "|| true" not in text
                 and ".mypy_cache" not in text and "NUL" not in text
                 and "--select ALL" not in text
-                and 'python-version: "3.12.12"' in text
-                and "runs-on: ubuntu-24.04" in text
+                and 'python-version: "3.12.12"' in backend
+                and "runs-on: ubuntu-24.04" in backend
                 and "${{ runner.temp }}" in text)
 
     @pytest.mark.parametrize("old,new", [

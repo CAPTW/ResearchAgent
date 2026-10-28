@@ -4,6 +4,7 @@ from dataclasses import replace
 import importlib
 import json
 import os
+from pathlib import Path
 import sys
 
 import pytest
@@ -66,7 +67,7 @@ sys.exit(1 if mode in {'error','failed'} else 7 if mode=='nonzero' else 0)
     config.mkdir()
     environment = {key: os.environ[key] for key in ("SYSTEMROOT", "WINDIR") if key in os.environ}
     environment.update(CLAUDE_CONFIG_DIR=str(config), TEMP=str(root), TMP=str(root), PYTHONIOENCODING="utf-8")
-    return process.ClaudeRuntime((sys.executable, str(script)), environment, root / "attempts")
+    return process.ClaudeRuntime((str(Path(sys.executable).resolve()), str(script)), environment, root / "attempts")
 
 
 def provider_at(root, *, mode="success", raw=None, timeout=30):
@@ -129,7 +130,7 @@ def test_fixed_process_policy_cannot_be_disabled_by_caller(tmp_path, key):
     config = tmp_path / "config"
     config.mkdir()
     with pytest.raises(ValueError, match="runtime_invalid"):
-        process.ClaudeRuntime((sys.executable,), {"CLAUDE_CONFIG_DIR": str(config), key: "0"}, tmp_path / "attempts")
+        process.ClaudeRuntime((str(Path(sys.executable).resolve()),), {"CLAUDE_CONFIG_DIR": str(config), key: "0"}, tmp_path / "attempts")
     assert not (tmp_path / "attempts").exists()
 
 
@@ -296,7 +297,7 @@ def test_environment_routing_and_direct_tokens_are_not_accepted(tmp_path, key):
     config = tmp_path / "config"
     config.mkdir()
     with pytest.raises(ValueError, match="runtime_invalid"):
-        process.ClaudeRuntime((sys.executable,), {"CLAUDE_CONFIG_DIR": str(config), key: "fixture"}, tmp_path / "attempts")
+        process.ClaudeRuntime((str(Path(sys.executable).resolve()),), {"CLAUDE_CONFIG_DIR": str(config), key: "fixture"}, tmp_path / "attempts")
 
 
 @pytest.mark.parametrize("change", ["manifest", "envelope", "envelope_hash", "review_hash", "authority", "extra"])
