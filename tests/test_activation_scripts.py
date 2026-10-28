@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -67,6 +68,21 @@ def _missing_activation_env() -> dict[str, str]:
 
 def _release_validation_output_dir() -> Path:
     return ROOT / "output" / "release-validation" / f"script-determinism-{uuid.uuid4().hex}"
+
+
+def _validation_failure(summary: dict, result: subprocess.CompletedProcess[str]) -> dict:
+    # Keep useful CI evidence without echoing raw child logs or environment values.
+    exception_types = re.findall(
+        r"\b(?:UnicodeEncodeError|UnicodeDecodeError|ModuleNotFoundError|ImportError|"
+        r"PermissionError|FileNotFoundError|TimeoutError|OSError|RuntimeError)\b",
+        result.stdout + "\n" + result.stderr,
+    )
+    return {
+        "exit_code": result.returncode,
+        "steps": [{key: step.get(key) for key in ("name", "status", "exitCode")}
+                  for step in summary["steps"]],
+        "exception_types": sorted(set(exception_types)),
+    }
 
 
 def test_start_prod_dry_run_supports_activation_check_flags() -> None:
@@ -223,7 +239,7 @@ def test_validate_release_reused_output_dir_replaces_stale_summary_with_current_
             "storage-path-preflight",
             "scheduler-status-preflight",
             "production-activation-preflight",
-        ]
+        ], _validation_failure(summary, result)
         assert "stale-step" not in stale_summary.read_text(encoding="utf-8")
     finally:
         shutil.rmtree(output_dir, ignore_errors=True)
@@ -264,7 +280,7 @@ def test_validate_release_summary_declares_ci_profile_contract_on_failure() -> N
         assert summary["artifacts"]["screenshotDir"].replace("\\", "/").endswith("output/playwright/truth-pass")
         assert summary["results"]["passed"] is False
         assert summary["results"]["failedStepCount"] == 1
-        assert summary["results"]["lastStepName"] == "production-activation-preflight"
+        assert summary["results"]["lastStepName"] == "production-activation-preflight", _validation_failure(summary, result)
     finally:
         shutil.rmtree(output_dir, ignore_errors=True)
 

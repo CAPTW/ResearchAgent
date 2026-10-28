@@ -31,6 +31,13 @@ source = test_local_synthesis.source
 select = test_local_synthesis.select
 
 
+@pytest.fixture(autouse=True)
+def _quiescent_preparation_store(monkeypatch):
+    # Apply before workspace startup so independent scheduler writes cannot race
+    # whole-store checks for rejected or read-only preparation requests.
+    monkeypatch.setenv("TOPIC_SCHEDULER_ENABLED", "0")
+
+
 @pytest.fixture
 def selected(workspace, tmp_path, monkeypatch):
     monkeypatch.setattr(connections, "STATE_PATH", tmp_path / "connections.json")

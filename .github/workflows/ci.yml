@@ -62,7 +62,7 @@ jobs:
       - name: Check browser collection with the locked optional PDF engine
         run: |
           uv run --frozen --extra dev --extra fulltext python -c "import fitz"
-          uv run --frozen --extra dev --extra fulltext pytest tests/test_browser_collection.py tests/test_review_pdf_extraction.py -q
+          uv run --frozen --extra dev --extra fulltext pytest tests/test_browser_collection.py tests/test_review_pdf_extraction.py tests/test_review_pdf_attachment.py -q
 
       - name: Run backend compile sanity
         run: uv run python -m py_compile app/schemas/workspace.py app/schemas/auth.py app/schemas/mcp.py app/schemas/admin.py app/services/outline_history.py app/services/workspace_actions.py app/services/ownership_migration.py app/services/render_deploy_config.py app/auth/config.py app/auth/security.py app/auth/sessions.py app/auth/security_types.py app/ops/runtime.py app/ops/logging.py app/api/auth.py app/api/mcp.py app/api/admin.py app/api/health.py app/api/runs.py app/main.py tools/mcp_connector_smoke.py

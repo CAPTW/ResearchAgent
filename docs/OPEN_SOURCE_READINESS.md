@@ -146,6 +146,31 @@ requests reproduced those writes. The test now disables that unrelated worker in
 its own fixture while retaining the original full-database equality and frozen
 execution assertions. Product scheduling and its separate tests are unchanged.
 
+The workflow repair and preview fixture were published together as `87414a6`,
+retaining seven public-only commits. Its
+[CI run](https://github.com/CAPTW/ResearchAgent/actions/runs/40671851071) passed
+13 extension tests, all 1,080 frontend tests and the production build. Backend
+passed its baseline checks, then stopped with 2,604 tests passed, 33 skipped and
+one Journal preparation snapshot failure. Windows runtime setup succeeded, then
+operator tests stopped with seven passed and one failed. The later backend PDF,
+compile and startup steps did not run; no artifacts were produced.
+
+Two additional read-only tests now isolate their background scheduler after
+no-request controls reproduced index timestamp writes independently of the HTTP
+requests. Their original database/authorization assertions remain. Optional PDF
+attachment fixtures skip explicitly without the locked fulltext dependency, and
+the separate fulltext CI step now includes attachment tests. That three-module
+PDF group passed 90 local Linux tests with the locked engine.
+
+Windows subprocess controls also reproduced a concrete CLI defect: Korean JSON
+diagnostics fail when redirected stdout uses cp1252. Both activation and scheduler
+CLI output now use lossless JSON escapes; parsed Unicode values and exit codes
+are preserved. Local PowerShell reaches all preflight stages with either cp1252
+or UTF-8. The original hosted child stderr was not captured, so its exact cause
+still requires a subsequent CI observation. Failure assertions now retain step
+statuses and fixed exception class names without echoing raw logs or environment
+values. These repairs do not establish a full backend or Windows CI pass yet.
+
 `tools/package_source_distribution.py` reads the committed Git object tree and
 its committed content policy. `--allow-dirty` exports **committed HEAD only**;
 it does not include pending changes or let an uncommitted policy admit private

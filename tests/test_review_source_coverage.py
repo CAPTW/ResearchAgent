@@ -217,6 +217,8 @@ def test_anchor_preparations_and_receipts_share_one_read_snapshot(store, monkeyp
 
 
 def test_http_read_only_restart_missing_source_and_oidc_scope(linked, monkeypatch):
+    # Isolate exact read-only DB checks from independent background scheduler writes.
+    monkeypatch.setenv("TOPIC_SCHEDULER_ENABLED", "0")
     from app.api import paper_bank as api
     from app.main import create_app
     first = service.prepare(linked["topic"], linked["version"], preparation_tests.selected(linked), linked["actor"])

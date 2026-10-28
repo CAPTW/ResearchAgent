@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import io
 import json
+import sys
 
 from app.auth.config import clear_auth_settings_cache
 from app.jobs import production_activation_check
@@ -162,3 +164,20 @@ def test_activation_cli_returns_exit_code_two_for_missing_required_oidc(monkeypa
     assert "Production activation requires AUTH_MODE=oidc" in output
     assert "OIDC_CLIENT_SECRET" in output
     assert "client-secret" not in output
+
+
+def test_activation_cli_preserves_unicode_json_on_legacy_redirected_stdout(monkeypatch) -> None:
+    _clear_activation_env(monkeypatch)
+    result = build_production_activation_result()
+    expected = result.to_dict()
+    # The real missing-SMTP diagnostics contain Korean text.
+    assert any(ord(character) > 127 for character in json.dumps(expected, ensure_ascii=False))
+    monkeypatch.setattr(production_activation_check, "build_production_activation_result", lambda **_kwargs: result)
+    buffer = io.BytesIO()
+    output = io.TextIOWrapper(buffer, encoding="cp1252", errors="strict")
+    with monkeypatch.context() as capture:
+        capture.setattr(sys, "stdout", output)
+        exit_code = production_activation_check.main([])
+        output.flush()
+    assert exit_code == 0
+    assert json.loads(buffer.getvalue()) == expected

@@ -28,7 +28,9 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _print_json(payload: dict) -> None:
-    print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+    # Redirected Windows stdout may use a legacy code page. JSON escapes preserve
+    # every Unicode status value without depending on the operator's encoding.
+    print(json.dumps(payload, ensure_ascii=True, indent=2, sort_keys=True))
 
 
 def main(argv: Sequence[str] | None = None) -> int:

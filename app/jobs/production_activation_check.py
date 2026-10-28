@@ -30,7 +30,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         check_smtp_connectivity=bool(args.check_smtp_connectivity),
         profile=args.profile,
     )
-    print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2, sort_keys=True))
+    # JSON escapes preserve Unicode even on legacy Windows redirected stdout.
+    print(json.dumps(result.to_dict(), ensure_ascii=True, indent=2, sort_keys=True))
     return 0 if result.ok else 2
 
 

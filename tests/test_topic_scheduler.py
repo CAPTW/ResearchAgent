@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import io
 import json
 import os
 import socket
 import sqlite3
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
@@ -461,6 +463,27 @@ def test_worker_cli_status_outputs_scheduler_json(tmp_path: Path, monkeypatch: p
     assert payload["runtime_mode"] == "single_node_file_backed"
     assert payload["storage_backend"] == "file_json"
     assert payload["distributed_ready"] is False
+
+
+def test_worker_cli_status_preserves_unicode_json_on_legacy_redirected_stdout(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _configure_topic_storage(tmp_path, monkeypatch)
+    monkeypatch.setenv("TOPIC_SCHEDULER_ENABLED", "0")
+    monkeypatch.setenv("TOPIC_SCHEDULER_MODE", "external")
+    monkeypatch.setenv("SCHEDULER_MODE", "single_node_file_backed")
+    expected = topic_schedules.get_scheduler_runtime_status(expected_mode="external")
+    assert any(ord(character) > 127 for character in expected["operator_message"])
+    # Freeze the observed status so timestamps cannot obscure a lossless JSON check.
+    monkeypatch.setattr(topic_schedules, "get_scheduler_runtime_status", lambda **_kwargs: expected)
+    buffer = io.BytesIO()
+    output = io.TextIOWrapper(buffer, encoding="cp1252", errors="strict")
+    with monkeypatch.context() as capture:
+        capture.setattr(sys, "stdout", output)
+        exit_code = topic_schedule_worker.main(["--status"])
+        output.flush()
+    assert exit_code == 0
+    assert json.loads(buffer.getvalue()) == expected
 
 
 def test_worker_cli_check_reports_queue_backed_preflight(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys) -> None:

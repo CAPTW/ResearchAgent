@@ -25,7 +25,7 @@ def root(f):
 
 @pytest.fixture
 def upload(linked):
-    import fitz
+    fitz = pytest.importorskip("fitz", reason="Locked optional fulltext dependency not installed")
     with fitz.open() as document:
         document.new_page().insert_textbox((60, 60, 550, 700), "Public synthetic paper body. " * 30)
         raw = document.tobytes()
@@ -224,7 +224,7 @@ def test_interrupted_request_stream_never_creates_an_attachment(upload):
 
 
 def test_excerpt_only_app_can_attach_then_explicitly_extract(linked):
-    import fitz
+    fitz = pytest.importorskip("fitz", reason="Locked optional fulltext dependency not installed")
     from app.db import bootstrap
     from app.repositories import paper_reviews
 
