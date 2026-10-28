@@ -22,6 +22,59 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _expected_empty_v1_plan_digest(path: Path) -> str:
+    """Freeze V1 semantics independently of the planner's field selection."""
+    source = path.read_bytes()
+    relationship = (
+        "scheduler_queue_items.schedule_id->scheduler_schedules.schedule_id"
+    )
+    # SQLite writes its library version into the DB header. Bind the actual
+    # generated file, while keeping every other V1 digest input explicit.
+    payload = {
+        "store": "scheduler",
+        "migration_id": "scheduler_required_foreign_keys_v1",
+        "status": "migration_required",
+        "current_declared_fk_count": 0,
+        "target_fk_count": 1,
+        "missing_relationships": [relationship],
+        "conflicting_relationship_count": 0,
+        "unexpected_relationship_count": 0,
+        "schema_fingerprint": (
+            "0cec7351d968bb7be4b95c6a82a66c8ac25f93be8ced6aaf6caf6a1d7ecf2d80"
+        ),
+        "source_fingerprint": hashlib.sha256(source).hexdigest(),
+        "source_size": len(source),
+        "orphan_counts": [[relationship, 0]],
+        "total_orphan_count": 0,
+        "quick_check_ok": True,
+        "foreign_key_violation_count": 0,
+        "migration_required": True,
+        "schema_compatible": True,
+        "backup_required": True,
+        "relation_audit_coverage": [
+            {
+                "relationship_id": relationship,
+                "status": "checked",
+                "orphan_count": 0,
+            }
+        ],
+        "required_relationship_contract": [
+            {
+                "child_table": "scheduler_queue_items",
+                "child_columns": ["schedule_id"],
+                "parent_table": "scheduler_schedules",
+                "parent_columns": ["schedule_id"],
+                "on_delete": "CASCADE",
+                "on_update": "NO ACTION",
+            }
+        ],
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode(
+        "utf-8"
+    )
+    return hashlib.sha256(encoded).hexdigest()
+
+
 def _v2_legacy_schema() -> str:
     scheduler_only = bootstrap.SCHEDULER_SCHEMA_SQL.split(
         "CREATE TABLE IF NOT EXISTS run_jobs",
@@ -473,10 +526,9 @@ def test_ready_v1_v2_and_readiness_classifications_remain_distinct(
         v1_plan.schema_classification
         == migrations.SCHEMA_CLASSIFICATION_SCHEDULER_V1
     )
-    assert (
-        v1_plan.plan_digest
-        == "b59b7b409d5456ec62a56ea45cd6afb13d2ea541935490f784fafa24f5d65b3f"
-    )
+    assert v1_plan.source_fingerprint == _sha256(v1)
+    assert v1_plan.source_size == v1.stat().st_size
+    assert v1_plan.plan_digest == _expected_empty_v1_plan_digest(v1)
 
     v2_read = integrity.open_sqlite_read_only(
         v2,
@@ -506,6 +558,60 @@ def test_ready_v1_v2_and_readiness_classifications_remain_distinct(
         )
     finally:
         connection.close()
+
+
+def test_v1_digest_binds_source_bytes_and_rejects_stale_approval(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "scheduler.sqlite3"
+    _create_v1_legacy(path)
+    original_bytes = path.read_bytes()
+    before_schema = _schema_snapshot(path)
+    before_content = _content_snapshot(path)
+    original = migrations.plan_sqlite_foreign_key_migration(
+        store=integrity.STORE_SCHEDULER,
+        path=path,
+    )
+    assert original.plan_digest == _expected_empty_v1_plan_digest(path)
+    assert original.plan_digest is not None
+
+    # Round-trip the schema marker: committed header counters change, while the
+    # final schema markers, tables, relationships, and row contents stay intact.
+    connection = sqlite3.connect(path)
+    try:
+        connection.execute("PRAGMA user_version = 1")
+        connection.execute("PRAGMA user_version = 0")
+        connection.commit()
+    finally:
+        connection.close()
+    changed_bytes = path.read_bytes()
+    assert changed_bytes != original_bytes
+    changed = migrations.plan_sqlite_foreign_key_migration(
+        store=integrity.STORE_SCHEDULER,
+        path=path,
+    )
+    assert _schema_snapshot(path) == before_schema
+    assert _content_snapshot(path) == before_content
+    assert changed.schema_fingerprint == original.schema_fingerprint
+    assert (
+        changed.structural_schema_fingerprint
+        == original.structural_schema_fingerprint
+    )
+    assert changed.source_fingerprint == _sha256(path)
+    assert changed.source_fingerprint != original.source_fingerprint
+    assert changed.source_size == len(changed_bytes)
+    assert changed.plan_digest == _expected_empty_v1_plan_digest(path)
+    assert changed.plan_digest != original.plan_digest
+
+    with pytest.raises(migrations.SqliteForeignKeyPlanStale):
+        migrations.apply_sqlite_foreign_key_migration(
+            store=integrity.STORE_SCHEDULER,
+            path=path,
+            expected_plan_digest=original.plan_digest,
+        )
+    assert path.read_bytes() == changed_bytes
+    assert _backup_paths(path) == []
+    assert not migrations._migration_lock_path(path).exists()
 
 
 def _add_partial_run_jobs(path: Path) -> None:

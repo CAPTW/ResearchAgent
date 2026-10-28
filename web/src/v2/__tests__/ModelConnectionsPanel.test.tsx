@@ -190,3 +190,28 @@ it("renders login instructions as text and omits an unsafe documentation URL", a
   expect(screen.getByText('<img src=x onerror="alert(1)">')).toBeTruthy();
   expect(screen.queryByRole("link")).toBeNull(); expect(document.querySelector("img")).toBeNull();
 });
+
+it("saves a local runtime model without credential reads, login actions, or inferred installation", async () => {
+  const local = connector("ollama_local", "Ollama · 로컬 런타임", { auth_mode: "local_runtime", provider_name: "ollama", cli_command: null,
+    availability_reason: "로컬 모델 실행 경로는 아직 연결되지 않았습니다.", login_instructions: "", docs_url: "https://docs.ollama.com/" });
+  const localSettings: ModelConnections = { ...initial, schema_version: "MODEL_CONNECTIONS_V2", catalog_schema_version: "MODEL_CONNECTORS_V2",
+    default_connector_id: local.connector_id, effective_connector_id: local.connector_id, connectors: [local] };
+  vi.mocked(api.fetchJson).mockImplementation(async (_path, init) => {
+    if (init?.method !== "PUT") return localSettings as never;
+    const body = JSON.parse(init.body as string) as ModelConnectionsUpdate;
+    return { ...localSettings, revision: 1, connectors: [{ ...local, model: body.models.ollama_local }] } as never;
+  });
+  await open();
+  const card = screen.getByRole("group", { name: local.display_name });
+  expect(within(card).getByText("로컬 실행 미검증 · 문서 계획만 가능")).toBeTruthy();
+  expect(within(card).getByText(/설치 여부·실제 로컬 추론·컨텍스트 용량은 확인하지 않습니다/)).toBeTruthy();
+  expect(within(card).queryByText(/공식 CLI 안내|CLI 로그인 상태|환경 변수 이름/)).toBeNull();
+  expect(document.querySelector('input[type="password"]')).toBeNull();
+  expect(modelApi.getModelCredential).not.toHaveBeenCalled();
+  fireEvent.change(model(local.display_name), { target: { value: "fixture-local:small" } });
+  save().focus(); await userEvent.keyboard("{Enter}");
+  await screen.findByText(/모델 연결 설정을 저장했습니다/);
+  expect(JSON.parse(puts()[0][1]!.body as string)).toEqual({ expected_revision: 0, default_connector_id: "ollama_local", models: { ollama_local: "fixture-local:small" } });
+  expect(model(local.display_name)).toHaveProperty("value", "fixture-local:small");
+  expect(vi.mocked(api.fetchJson).mock.calls.every(([url]) => url === endpoint)).toBe(true);
+});

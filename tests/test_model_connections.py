@@ -30,7 +30,7 @@ def test_codex_default_is_read_only_and_not_execution_authority(connections):
     assert not connections.STATE_PATH.exists()
     assert value["execution_allowed"] is False
     assert {row["connector_id"] for row in value["connectors"]} == {
-        "codex_subscription", "claude_subscription", "antigravity_subscription", "grok_subscription", "openai_api", "xai_api", "anthropic_api"}
+        "codex_subscription", "claude_subscription", "antigravity_subscription", "grok_subscription", "openai_api", "xai_api", "anthropic_api", "ollama_local"}
     assert describe_provider_status()["provider"] == "codex_cli"
     assert get_active_provider() is None
 

@@ -11,7 +11,7 @@ function savedDraft(value: ModelConnections): Draft {
   if (!value || !Number.isSafeInteger(value.revision) || value.revision < 0 || value.execution_allowed !== false
       || !Array.isArray(value.connectors) || !value.connectors.length
       || !value.connectors.every(item => item && typeof item.connector_id === "string" && typeof item.display_name === "string"
-        && typeof item.model === "string" && ["subscription_cli", "api_key"].includes(item.auth_mode))
+        && typeof item.model === "string" && ["subscription_cli", "api_key", "local_runtime"].includes(item.auth_mode))
       || !value.connectors.some(item => item.connector_id === value.default_connector_id)) throw new Error("invalid_model_connections");
   return { default_connector_id: value.default_connector_id, models: Object.fromEntries(value.connectors.map(item => [item.connector_id, item.model])) };
 }
@@ -98,7 +98,7 @@ export function ModelConnectionsPanel() {
   const connectorName = (value: string) => settings?.connectors.find(item => item.connector_id === value)?.display_name ?? value;
 
   return <section className="model-connections-panel" aria-label="모델 연결 설정">
-    <V2Panel title="모델 연결" subtitle="구독 CLI와 API 키 경로를 구분해 선택합니다.">
+    <V2Panel title="모델 연결" subtitle="구독 CLI·API 키·로컬 런타임 경로를 구분해 선택합니다.">
       <div className="model-connections-content">
         <p id={`${id}-scope`}>기본 연결과 모델 이름을 저장합니다. 저장은 로그인·모델 실행·실행 권한 승인이 아닙니다.</p>
         <p><strong>실행 권한: 미등록</strong> · 계정 로그인과 실제 실행 승인은 별도입니다.</p>
@@ -123,8 +123,8 @@ export function ModelConnectionsPanel() {
                 const docs = documentationUrl(item.docs_url);
                 return <fieldset className="model-connection-card" key={item.connector_id}>
                   <legend>{item.display_name}</legend>
-                  <p>{item.auth_mode === "subscription_cli" ? "구독 계정 · 공식 CLI 로그인" : "API 키 · 로컬 암호화 저장 또는 서버 환경 변수"}</p>
-                  <p><strong>{item.adapter_available ? "연결 어댑터 지원" : "연결 어댑터 미구현"}</strong></p>
+                  <p>{item.auth_mode === "local_runtime" ? "로컬 런타임 · API 키와 CLI 로그인 불필요" : item.auth_mode === "subscription_cli" ? "구독 계정 · 공식 CLI 로그인" : "API 키 · 로컬 암호화 저장 또는 서버 환경 변수"}</p>
+                  <p><strong>{item.auth_mode === "local_runtime" ? "로컬 실행 미검증 · 문서 계획만 가능" : item.adapter_available ? "연결 어댑터 지원" : "연결 어댑터 미구현"}</strong></p>
                   <p>{item.availability_reason}</p>
                   <label htmlFor={`${id}-${item.connector_id}`}>{item.display_name} 모델
                     <input id={`${id}-${item.connector_id}`} type="text" autoComplete="off" spellCheck={false} maxLength={200}
@@ -133,9 +133,9 @@ export function ModelConnectionsPanel() {
                   </label>
                   {item.connector_id === "anthropic_api" ? <V2Button type="button" onClick={() => edit({ ...draft, models: { ...draft.models, [item.connector_id]: "claude-opus-5-5" } })}>Opus 5.5 모델 입력</V2Button> : null}
                   {item.auth_mode === "api_key" ? <p>환경 변수 이름: <code>{item.credential_env || "미지정"}</code></p>
-                    : <p>CLI 로그인 상태는 이 화면에서 확인하지 않습니다.</p>}
-                  {item.cli_command ? <p>공식 CLI 안내: <code>{item.cli_command}</code></p> : null}
-                  <p className="model-connections-instructions">{item.login_instructions}</p>
+                    : item.auth_mode === "subscription_cli" ? <p>CLI 로그인 상태는 이 화면에서 확인하지 않습니다.</p> : <p>저장한 모델 이름의 설치 여부·실제 로컬 추론·컨텍스트 용량은 확인하지 않습니다. 문서 계획에서 사용할 예산을 직접 입력하세요.</p>}
+                  {item.auth_mode === "subscription_cli" && item.cli_command ? <p>공식 CLI 안내: <code>{item.cli_command}</code></p> : null}
+                  {item.auth_mode !== "local_runtime" ? <p className="model-connections-instructions">{item.login_instructions}</p> : null}
                   {docs ? <a href={docs} target="_blank" rel="noopener noreferrer">{item.display_name} 공식 안내</a> : null}
                 </fieldset>;
               })}</div>

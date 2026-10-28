@@ -33,12 +33,13 @@ DOCS = "https://platform.claude.com/docs/en/models/haiku-5-5/overview"
 CONNECTOR_PROVIDERS_V1 = dict(codex_subscription="codex_cli", claude_subscription="claude_code",
     antigravity_subscription="antigravity_cli", grok_subscription="grok_cli", openai_api="openai",
     xai_api="xai", anthropic_api="anthropic")
+CONNECTOR_PROVIDERS_V2 = {"ollama_local": "ollama"}
 MAX_UNITS = 256
 _HEADING = re.compile(r"(?<!\S)([1-9][0-9]?(?:\.[0-9]+){0,3}\.?)\s+(Abstract|Introduction|Related\s+Work|Background|Methods?|Methodology|Approach|Experiments?|Results?(?:\s+and\s+Discussion)?|Discussion|Conclusions?|Limitations|References|Appendix)\b", re.I)
 
 
-def identity(topic: str, version: str, actor: str, request: str) -> str:
-    return "rplan_" + prep.sha(prep.encoded([domain.SCHEMA, topic, version, actor, request]))
+def identity(topic: str, version: str, actor: str, request: str, *, schema_version: str = domain.SCHEMA) -> str:
+    return "rplan_" + prep.sha(prep.encoded([schema_version, topic, version, actor, request]))
 
 
 def sections(text: str) -> list[dict[str, Any]]:
@@ -60,10 +61,14 @@ def configuration(topic: str, version: str, actor: ResourceActor) -> dict[str, A
     choices = []
     for item in model_connections.CONNECTORS:
         model = state["models"].get(item.connector_id, "")
-        context = MODEL_CONTEXTS.get((item.provider_name, model))
+        local = item.connector_id == domain.LOCAL_CONNECTOR
+        context = None if local else MODEL_CONTEXTS.get((item.provider_name, model))
         choices.append(dict(connector_id=item.connector_id, display_name=item.display_name, provider_name=item.provider_name,
             model=model, context_tokens=context, budget_source="DOCUMENTED_MODEL_2026_10_18" if context else "USER_REQUIRED",
-            docs_url=DOCS if context else item.docs_url))
+            docs_url=DOCS if context else item.docs_url,
+            plan_schema_version=domain.LOCAL_SCHEMA if local else domain.SCHEMA,
+            max_context_tokens=domain.LOCAL_CONTEXT_REQUEST_LIMIT if local else 2_000_000,
+            local_capability=domain.local_capability_v1() if local else None))
     return dict(choices=choices, default_connector_id=state["default_connector_id"], estimator=domain.ESTIMATOR,
         max_output_tokens=2200, safety_tokens=8192, execution_started=False)
 
@@ -96,6 +101,16 @@ def _estimate(plan: dict[str, Any], unit: dict[str, Any], index=255, count=256, 
             adapter.build_plan(contract, timeout_seconds=60, profile=adapter.MANIFEST_SCHEMA_V2)
         except ValueError as exc:
             if str(exc) == "paper_anthropic_configuration_invalid":
+                raise ValueError("document_plan_wire_limit") from None
+            raise
+    if plan["schema_version"] == domain.LOCAL_SCHEMA:
+        # Pure serialization only. The adapter remains unregistered and no
+        # MockTransport, runtime, credential or HTTP client is constructed.
+        from app.services.providers import ollama_prepared_review as local_adapter
+        try:
+            local_adapter.build_plan(contract, context_tokens=budget["context_tokens"], timeout_seconds=30)
+        except ValueError as exc:
+            if str(exc) == "paper_ollama_configuration_invalid":
                 raise ValueError("document_plan_wire_limit") from None
             raise
     return estimate_input_tokens(contract["provider_request"])
@@ -148,15 +163,20 @@ def _split(plan: dict[str, Any]) -> list[dict[str, Any]]:
 
 def _new(topic: str, version: str, actor: str, body: domain.Plan, profile: dict[str, Any], paper: dict[str, Any]) -> dict[str, Any]:
     connector = model_connections.BY_ID.get(body.connector_id)
-    if connector is None or not connector.adapter_available or body.connector_id not in CONNECTOR_PROVIDERS_V1:
+    local = body.connector_id == domain.LOCAL_CONNECTOR
+    schema_version = domain.LOCAL_SCHEMA if local else domain.SCHEMA
+    providers = CONNECTOR_PROVIDERS_V2 if local else CONNECTOR_PROVIDERS_V1
+    if (connector is None or body.connector_id not in providers or connector.provider_name != providers[body.connector_id]
+            or (not local and not connector.adapter_available)):
         raise ValueError("document_plan_connector_invalid")
-    documented = MODEL_CONTEXTS.get((connector.provider_name, body.model))
+    documented = None if local else MODEL_CONTEXTS.get((connector.provider_name, body.model))
     if documented and body.context_tokens > documented:
         raise ValueError("document_plan_budget_invalid")
     source, text = review_preparation._observe_selected(topic, version, body.run_id, body.paper_id, body.expected_source_digest)
     if source["source_digest"] != body.expected_source_digest:
         raise ValueError("review_preparation_source_changed")
-    plan: dict[str, Any] = dict(schema_version=domain.SCHEMA, plan_id=identity(topic, version, actor, body.request_id),
+    plan: dict[str, Any] = dict(schema_version=schema_version,
+        plan_id=identity(topic, version, actor, body.request_id, schema_version=schema_version),
         topic_id=topic, paper_version_id=version, actor_id=actor, created_at=iso_now_utc(), request=body.model_dump(),
         source=source, text=text, text_sha256=prep.sha(text), context=capture(profile, paper),
         budget=domain.budget(body, connector.provider_name),
@@ -165,6 +185,8 @@ def _new(topic: str, version: str, actor: str, body: domain.Plan, profile: dict[
             docs_url=DOCS if documented else None, live_access="NOT_VERIFIED"),
         outline=sections(text), section_detection="NUMBERED_HEADING_HEURISTIC_V1",
         full_document_review="NOT_ESTABLISHED", scientific_support="NOT_ASSESSED")
+    if local:
+        plan["local_capability"] = domain.local_capability_v1()
     plan["units"] = _split(plan)
     for index, unit in enumerate(plan["units"]):
         unit["index"] = index
@@ -176,11 +198,17 @@ def _new(topic: str, version: str, actor: str, body: domain.Plan, profile: dict[
 
 def validate(value: dict[str, Any]) -> dict[str, Any]:
     try:
+        schema_version = value["schema_version"]
+        local = schema_version == domain.LOCAL_SCHEMA
         if set(value) != {"schema_version", "plan_id", "topic_id", "paper_version_id", "actor_id", "created_at", "request",
                 "source", "text", "text_sha256", "context", "budget", "budget_source", "model_capability", "outline", "section_detection",
-                "full_document_review", "scientific_support", "units", "mode", "plan_sha256"}:
+                "full_document_review", "scientific_support", "units", "mode", "plan_sha256"} | ({"local_capability"} if local else set()):
             raise ValueError()
         body = domain.Plan.model_validate(value["request"])
+        providers = CONNECTOR_PROVIDERS_V2 if local else CONNECTOR_PROVIDERS_V1
+        if local and (prep.encoded(value["local_capability"]) != prep.encoded(domain.local_capability_v1())
+                or value["model_capability"]["documented_context_tokens"] is not None):
+            raise ValueError()
         capability = value["model_capability"]
         if (not isinstance(capability, dict) or set(capability) != {"documented_context_tokens", "observed_at", "docs_url", "live_access"}
                 or capability["live_access"] != "NOT_VERIFIED"):
@@ -192,8 +220,8 @@ def validate(value: dict[str, Any]) -> dict[str, Any]:
         elif (type(documented) is not int or not 8192 <= documented <= 2_000_000
                 or capability["observed_at"] != "2026-10-18" or capability["docs_url"] != DOCS):
             raise ValueError()
-        if (value["schema_version"] != domain.SCHEMA
-                or value["plan_id"] != identity(value["topic_id"], value["paper_version_id"], value["actor_id"], body.request_id)
+        if (schema_version not in {domain.SCHEMA, domain.LOCAL_SCHEMA}
+                or value["plan_id"] != identity(value["topic_id"], value["paper_version_id"], value["actor_id"], body.request_id, schema_version=schema_version)
                 or datetime.fromisoformat(value["created_at"]).tzinfo is None
                 or value["text_sha256"] != prep.sha(value["text"]) or len(value["text"]) != value["source"]["source_chars"]
                 or value["plan_sha256"] != prep.sha(prep.encoded({k: v for k, v in value.items() if k != "plan_sha256"}))
@@ -202,7 +230,7 @@ def validate(value: dict[str, Any]) -> dict[str, Any]:
                 or not 1 <= len(value["units"]) <= MAX_UNITS
                 or value["mode"] != ("WHOLE_EXTRACTED_TEXT" if len(value["units"]) == 1 else "SECTION_UNITS")
                 or value["budget"] != domain.budget(body, value["budget"]["provider_name"])
-                or CONNECTOR_PROVIDERS_V1.get(body.connector_id) != value["budget"]["provider_name"]
+                or providers.get(body.connector_id) != value["budget"]["provider_name"]
                 or value["budget_source"] != ("DOCUMENTED_MODEL_2026_10_18" if documented else "USER_CONFIGURED_NOT_VERIFIED")
                 or (documented and body.context_tokens > documented)
                 or value["source"]["run_id"] != body.run_id or value["source"]["paper_id"] != body.paper_id

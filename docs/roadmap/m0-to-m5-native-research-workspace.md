@@ -38,17 +38,20 @@ an evidence update and a logical local commit. No live paid calls, new account u
 scheduled collection, user DB restore, publication or release is implied by local
 implementation. Reuse the existing status and readiness documents for resumability.
 
-Immediate continuation: resolve the reproduced cross-platform mypy discrepancy
-and qualify the backend suite on the reviewed public tree. The optional PDF import
-and synthetic public test-input corrections have been implemented. Browser
+Immediate continuation: qualify the backend suite on the reviewed public tree
+with enough job time to finish. The cross-platform mypy discrepancy is resolved
+at the same 559-error debt baseline; this is not a clean typecheck. Optional PDF
+import and synthetic public test-input corrections have been implemented. Browser
 collection remains the first research-function objective: local persistence,
 synthetic recovery and analysis handoff exist, but actual Whale native invocation
 still fails before download. New error guidance explains the distinct failures;
 it is not acquisition acceptance. Next real verification depends on diagnosing
 that host lookup through an allowed path, preserving the approved one-paper scope.
-Common brief and next-plan model controls can continue independently; a small local
-inference adapter, period-review denominator semantics, optional 3D and isolated
-experiments remain later implementation work.
+Common brief and next-plan model controls can continue independently. The first
+Ollama protocol adapter has synthetic-only verification; Settings selection and a
+versioned local document-plan path now extend the existing input preparation. Actual
+local inference, model/capacity/quality qualification, period-review denominator
+semantics, optional 3D and isolated experiments remain later work.
 
 Status update: see [current public checkpoint](../OPEN_SOURCE_READINESS.md). The milestone contracts below remain useful; the historical M1-era implementation status in this document is superseded by M2, M3-A, M3-B and the local main adoption.
 

@@ -1,9 +1,24 @@
 import { fetchJson } from "./api";
 
+export type LocalModelCapability = {
+  schema_version: "OLLAMA_LOCAL_CAPABILITY_V1";
+  connector_id: "ollama_local";
+  provider_name: "ollama";
+  protocol_schema: "OLLAMA_PREPARED_REVIEW_WIRE_V1";
+  synthetic_protocol_available: true;
+  document_planning_available: true;
+  execution_available: false;
+  locality: "LOCALITY_NOT_VERIFIED";
+  runtime_presence: "NOT_CHECKED";
+  model_identity: "NOT_VERIFIED";
+  context_capacity: "NOT_VERIFIED";
+  context_request_limit_tokens: 1000000;
+};
+
 export type ModelConnector = {
   connector_id: string;
   display_name: string;
-  auth_mode: "subscription_cli" | "api_key";
+  auth_mode: "subscription_cli" | "api_key" | "local_runtime";
   provider_name: string;
   model: string;
   adapter_available: boolean;
@@ -13,8 +28,11 @@ export type ModelConnector = {
   login_instructions: string;
   docs_url: string;
   availability_reason: string;
+  local_capability?: LocalModelCapability | null;
 };
 export type ModelConnections = {
+  schema_version?: "MODEL_CONNECTIONS_V1" | "MODEL_CONNECTIONS_V2";
+  catalog_schema_version?: "MODEL_CONNECTORS_V2";
   revision: number;
   default_connector_id: string;
   effective_connector_id: string;

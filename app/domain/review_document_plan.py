@@ -1,4 +1,5 @@
 """Local document planning requests; never execution authority."""
+import re
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -6,7 +7,26 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from app.domain.review_preparation import Prepare
 
 SCHEMA = "PAPER_DOCUMENT_PLAN_V1"
+LOCAL_SCHEMA = "PAPER_DOCUMENT_PLAN_V2"
+LOCAL_CONNECTOR = "ollama_local"
+LOCAL_CONTEXT_REQUEST_LIMIT = 1_000_000
 ESTIMATOR = "UTF8_BYTES_CONSERVATIVE_V1"
+
+
+def local_model_valid(value: str) -> bool:
+    """V1 local-selection grammar, not model availability or locality proof."""
+    return (re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}", value) is not None
+            and not value.lower().startswith(("sk-", "xai-", "ya29.")) and "://" not in value
+            and "cloud" not in re.split(r"[:/._-]", value.lower()))
+
+
+def local_capability_v1() -> dict[str, Any]:
+    """Frozen snapshot for V2 plans; future capabilities need another version."""
+    return dict(schema_version="OLLAMA_LOCAL_CAPABILITY_V1", connector_id=LOCAL_CONNECTOR, provider_name="ollama",
+        protocol_schema="OLLAMA_PREPARED_REVIEW_WIRE_V1", synthetic_protocol_available=True,
+        document_planning_available=True, execution_available=False, locality="LOCALITY_NOT_VERIFIED",
+        runtime_presence="NOT_CHECKED", model_identity="NOT_VERIFIED", context_capacity="NOT_VERIFIED",
+        context_request_limit_tokens=LOCAL_CONTEXT_REQUEST_LIMIT)
 
 
 class Plan(BaseModel):
@@ -33,6 +53,11 @@ class Plan(BaseModel):
             raise ValueError("document_plan_budget_invalid")
         if self.model.lower().startswith(("sk-", "xai-", "ya29.")):
             raise ValueError("document_plan_model_invalid")
+        if self.connector_id == LOCAL_CONNECTOR:
+            if not local_model_valid(self.model):
+                raise ValueError("document_plan_model_invalid")
+            if self.context_tokens > LOCAL_CONTEXT_REQUEST_LIMIT:
+                raise ValueError("document_plan_budget_invalid")
         return self
 
 

@@ -1,22 +1,35 @@
 import { fetchJson } from "./api";
 import type { PreparationSource, ReviewPreparationRecord } from "./reviewPreparation";
+import type { LocalModelCapability } from "./modelConnections";
 
 export type TokenBudget = { provider_name: string; model: string; context_tokens: number; input_tokens: number; max_output_tokens: number; safety_tokens: number; estimator: "UTF8_BYTES_CONSERVATIVE_V1" };
 export type AnalysisUnit = { schema_version: "PAPER_ANALYSIS_UNIT_V1"; plan_id: string; plan_sha256: string; unit_index: number; unit_count: number; label: string; document_chars: number; outline: {label: string; start: number; end: number}[]; context_before: string; context_after: string; budget: TokenBudget };
 export type DocumentPlanRequest = { request_id: string; run_id: string; paper_id: string; expected_source_digest: string; connector_id: string; model: string; context_tokens: number; input_tokens: number; max_output_tokens: number; safety_tokens: number };
-export type DocumentPlan = {
-  schema_version: "PAPER_DOCUMENT_PLAN_V1"; plan_id: string; plan_sha256: string; created_at: string; source: PreparationSource;
+type DocumentPlanFields = {
+  plan_id: string; plan_sha256: string; created_at: string; source: PreparationSource;
   topic_id: string; paper_version_id: string; actor_id: string; request_id: string;
   budget: TokenBudget; budget_source: string; mode: "WHOLE_EXTRACTED_TEXT" | "SECTION_UNITS"; full_document_review: "NOT_ESTABLISHED";
   outline: { label: string; start: number; end: number }[];
   units: { index: number; start: number; end: number; label: string; estimated_input_tokens: number; preparation_id: string | null; expected_preparation_id: string; state: string;
     receipts: {receipt_id: string; input_origin: string; validated_response: boolean; status: string}[] }[];
 };
+export type DocumentPlan = DocumentPlanFields & (
+  { schema_version: "PAPER_DOCUMENT_PLAN_V1"; local_capability?: never }
+  | { schema_version: "PAPER_DOCUMENT_PLAN_V2"; local_capability: LocalModelCapability }
+);
 export type PlanConfiguration = { default_connector_id: string; max_output_tokens: number; safety_tokens: number;
-  choices: {connector_id: string; display_name: string; provider_name: string; model: string; context_tokens: number | null; budget_source: string; docs_url: string}[] };
+  choices: {connector_id: string; display_name: string; provider_name: string; model: string; context_tokens: number | null; budget_source: string; docs_url: string;
+    plan_schema_version?: "PAPER_DOCUMENT_PLAN_V1" | "PAPER_DOCUMENT_PLAN_V2"; local_capability?: LocalModelCapability | null; max_context_tokens?: number}[] };
 export const planRoot = (root: string) => `${root}/document-plans`;
 const object = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === "object" && !Array.isArray(v);
 const integer = (v: unknown): v is number => typeof v === "number" && Number.isSafeInteger(v) && v >= 0;
+function localCapability(value: unknown): value is LocalModelCapability {
+  return object(value) && value.schema_version === "OLLAMA_LOCAL_CAPABILITY_V1" && value.connector_id === "ollama_local"
+    && value.provider_name === "ollama" && value.protocol_schema === "OLLAMA_PREPARED_REVIEW_WIRE_V1"
+    && value.synthetic_protocol_available === true && value.document_planning_available === true && value.execution_available === false
+    && value.locality === "LOCALITY_NOT_VERIFIED" && value.runtime_presence === "NOT_CHECKED"
+    && value.model_identity === "NOT_VERIFIED" && value.context_capacity === "NOT_VERIFIED" && value.context_request_limit_tokens === 1000000;
+}
 function scope(root: string) {
   const match = root.match(/^\/api\/topics\/([^/]+)\/paper-bank\/([^/]+)\/review-preparations$/);
   if (!match) throw new Error("document_plan_scope_invalid");
@@ -24,7 +37,7 @@ function scope(root: string) {
 }
 function readPlan(value: unknown, root: string, expected?: DocumentPlanRequest, identity?: string): DocumentPlan {
   const target = scope(root);
-  if (!object(value) || value.schema_version !== "PAPER_DOCUMENT_PLAN_V1" || value.topic_id !== target.topic || value.paper_version_id !== target.version
+  if (!object(value) || !["PAPER_DOCUMENT_PLAN_V1", "PAPER_DOCUMENT_PLAN_V2"].includes(value.schema_version as string) || value.topic_id !== target.topic || value.paper_version_id !== target.version
       || typeof value.actor_id !== "string" || typeof value.created_at !== "string" || !Number.isFinite(Date.parse(value.created_at))
       || typeof value.plan_id !== "string" || !/^rplan_[a-f0-9]{64}$/.test(value.plan_id) || (identity && value.plan_id !== identity)
       || typeof value.plan_sha256 !== "string" || !/^[a-f0-9]{64}$/.test(value.plan_sha256)
@@ -36,6 +49,10 @@ function readPlan(value: unknown, root: string, expected?: DocumentPlanRequest, 
   if (typeof budget.model !== "string" || typeof budget.provider_name !== "string"
       || !integer(budget.context_tokens) || !integer(budget.input_tokens) || !integer(budget.max_output_tokens) || !integer(budget.safety_tokens)
       || budget.input_tokens + budget.max_output_tokens + budget.safety_tokens > budget.context_tokens) throw new Error("document_plan_budget_invalid");
+  if (value.schema_version === "PAPER_DOCUMENT_PLAN_V2") {
+    if (!localCapability(value.local_capability) || budget.provider_name !== "ollama" || budget.context_tokens > value.local_capability.context_request_limit_tokens)
+      throw new Error("document_plan_local_capability_invalid");
+  } else if (budget.provider_name === "ollama" || value.local_capability !== undefined) throw new Error("document_plan_local_capability_invalid");
   let cursor = 0;
   for (const [index, unit] of value.units.entries()) {
     if (!object(unit) || unit.index !== index || unit.start !== cursor || !integer(unit.end) || unit.end <= cursor
@@ -48,9 +65,18 @@ function readPlan(value: unknown, root: string, expected?: DocumentPlanRequest, 
   if (cursor !== value.source.source_chars) throw new Error("document_plan_coverage_invalid");
   if (expected && (value.request_id !== expected.request_id || value.source.run_id !== expected.run_id || value.source.paper_id !== expected.paper_id || value.source.source_digest !== expected.expected_source_digest
       || ["model", "context_tokens", "input_tokens", "max_output_tokens", "safety_tokens"].some(k => budget[k] !== expected[k as keyof DocumentPlanRequest]))) throw new Error("document_plan_response_mismatch");
+  if (expected && (expected.connector_id === "ollama_local") !== (value.schema_version === "PAPER_DOCUMENT_PLAN_V2")) throw new Error("document_plan_response_mismatch");
   return value as DocumentPlan;
 }
-export const getPlanConfiguration = (root: string) => fetchJson<PlanConfiguration>(`${planRoot(root)}/configuration`);
+export async function getPlanConfiguration(root: string) {
+  const value = await fetchJson<PlanConfiguration>(`${planRoot(root)}/configuration`);
+  for (const choice of value.choices) {
+    if (choice.connector_id === "ollama_local" && (choice.provider_name !== "ollama" || choice.plan_schema_version !== "PAPER_DOCUMENT_PLAN_V2"
+        || !localCapability(choice.local_capability) || choice.context_tokens !== null || choice.budget_source !== "USER_REQUIRED" || choice.max_context_tokens !== 1000000))
+      throw new Error("document_plan_local_configuration_invalid");
+  }
+  return value;
+}
 export async function listDocumentPlans(root: string, page: number) {
   const value = await fetchJson<unknown>(`${planRoot(root)}?page=${page}`);
   if (!object(value) || !Array.isArray(value.items) || typeof value.hasMore !== "boolean") throw new Error("document_plan_history_invalid");

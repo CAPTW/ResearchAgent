@@ -196,3 +196,104 @@ it("keeps a removed connector visible without silently switching or enabling new
   expect(screen.getByRole("button", {name: "전문 분석 계획 저장"})).toHaveProperty("disabled", true);
   expect(posts()).toHaveLength(0);
 });
+
+const localCapability = { schema_version: "OLLAMA_LOCAL_CAPABILITY_V1", connector_id: "ollama_local", provider_name: "ollama",
+  protocol_schema: "OLLAMA_PREPARED_REVIEW_WIRE_V1", synthetic_protocol_available: true, document_planning_available: true,
+  execution_available: false, locality: "LOCALITY_NOT_VERIFIED", runtime_presence: "NOT_CHECKED", model_identity: "NOT_VERIFIED",
+  context_capacity: "NOT_VERIFIED", context_request_limit_tokens: 1000000 };
+const localSettings = { ...settings, default_connector_id: "ollama_local", choices: [{ connector_id: "ollama_local", display_name: "Ollama · 로컬 런타임",
+  provider_name: "ollama", model: "fixture-local:small", context_tokens: null, budget_source: "USER_REQUIRED", docs_url: "https://docs.ollama.com/",
+  plan_schema_version: "PAPER_DOCUMENT_PLAN_V2", max_context_tokens: 1000000, local_capability: localCapability }] };
+const localPlan = { ...plan, schema_version: "PAPER_DOCUMENT_PLAN_V2", plan_id: "rplan_" + "f".repeat(64), plan_sha256: "f".repeat(64), local_capability: localCapability, budget_source: "USER_CONFIGURED_NOT_VERIFIED",
+  budget: { ...plan.budget, provider_name: "ollama", model: "fixture-local:small", context_tokens: 131072, input_tokens: 120000 } };
+function useLocalPlans() {
+  vi.mocked(api.fetchJson).mockImplementation(async (url, options) => {
+    if (url.endsWith("/configuration")) return localSettings as never;
+    if (url.includes("?page=")) return { items: [localPlan, plan], hasMore: false } as never;
+    if (url.endsWith("/" + plan.plan_id)) return plan as never;
+    if (url.endsWith("/prepare")) return { schema_version: "PAPER_REVIEW_PREPARATION_V3", preparation_id: localPlan.units[0].expected_preparation_id,
+      topic_id: "topic", paper_version_id: "version", actor_id: "owner", state: "PREPARED_NOT_EXECUTED", execution: { started: false }, source,
+      selection: { start: 0, end: source.source_chars, text: "a".repeat(source.source_chars) },
+      analysis_unit: { plan_id: localPlan.plan_id, plan_sha256: localPlan.plan_sha256, unit_index: 0, unit_count: 1, budget: localPlan.budget } } as never;
+    return (options?.method === "POST" ? { ...localPlan, request_id: JSON.parse(options.body as string).request_id } : localPlan) as never;
+  });
+}
+function enterLocalBudget() {
+  for (const [label, value] of [["모델 컨텍스트 토큰", "131072"], ["요청당 입력 토큰 예산", "120000"], ["출력 토큰 예약", "2200"], ["추정 오차 여유 토큰", "8192"]])
+    fireEvent.change(screen.getByLabelText(label), { target: { value } });
+}
+it("requires explicit local budgets and stores V2 plus a prepared unit without any execution endpoint", async () => {
+  useLocalPlans(); await open();
+  for (const label of ["모델 컨텍스트 토큰", "요청당 입력 토큰 예산", "출력 토큰 예약", "추정 오차 여유 토큰"])
+    expect(screen.getByLabelText(label)).toHaveProperty("value", "");
+  expect(screen.getByRole("button", { name: "전문 분석 계획 저장" })).toHaveProperty("disabled", true);
+  expect(screen.getByText("로컬 실행 미검증 · 문서 계획만 가능")).toBeTruthy();
+  enterLocalBudget();
+  fireEvent.change(screen.getByLabelText("모델 컨텍스트 토큰"), { target: { value: "1000001" } });
+  expect(screen.getByRole("button", { name: "전문 분석 계획 저장" })).toHaveProperty("disabled", true);
+  fireEvent.change(screen.getByLabelText("모델 컨텍스트 토큰"), { target: { value: "131072" } });
+  fireEvent.click(screen.getByRole("button", { name: "전문 분석 계획 저장" }));
+  const saved = await screen.findByRole("region", { name: "저장된 전문 분석 계획" });
+  expect(within(saved).getByText("로컬 실행 미검증 · 문서 계획만 가능")).toBeTruthy();
+  expect(JSON.parse(posts()[0][1]!.body as string)).toMatchObject({ connector_id: "ollama_local", model: "fixture-local:small", context_tokens: 131072, input_tokens: 120000, max_output_tokens: 2200, safety_tokens: 8192 });
+  fireEvent.click(within(saved).getByRole("button", { name: "구간 1 분석 요청 준비" }));
+  await waitFor(() => expect(openPrep).toHaveBeenCalledWith(localPlan.units[0].expected_preparation_id));
+  expect(posts()).toHaveLength(2);
+  expect(vi.mocked(api.fetchJson).mock.calls.every(([url]) => url.startsWith("/api/topics/topic/paper-bank/version/review-preparations/document-plans"))).toBe(true);
+});
+
+it("keeps frozen V2 limits when Settings or the next model changes and reads legacy V1 independently", async () => {
+  useLocalPlans(); await open();
+  fireEvent.click(screen.getByRole("button", { name: /fixture-local:small · 1개 분석 구간/ }));
+  const saved = await screen.findByRole("region", { name: "저장된 전문 분석 계획" });
+  const frozen = saved.textContent;
+  enterLocalBudget();
+  const previous = vi.mocked(api.fetchJson).getMockImplementation()!;
+  vi.mocked(api.fetchJson).mockImplementation(async (url, options) => url.endsWith("/configuration")
+    ? { ...settings, choices: [...settings.choices, { ...localSettings.choices[0], model: "changed-local" }] } as never : previous(url, options));
+  fireEvent.click(screen.getByRole("button", { name: "저장된 모델 설정 확인" }));
+  await screen.findByText("최근 확인한 저장 모델: changed-local");
+  expect(screen.getByLabelText("계획 모델 ID")).toHaveProperty("value", "fixture-local:small");
+  expect(screen.getByLabelText("모델 컨텍스트 토큰")).toHaveProperty("value", "131072");
+  fireEvent.click(screen.getByRole("button", { name: "선택 연결의 저장 모델 적용" }));
+  expect(screen.getByLabelText("출력 토큰 예약")).toHaveProperty("value", "");
+  expect(saved.textContent).toBe(frozen);
+  fireEvent.change(screen.getByLabelText("분석 연결"), { target: { value: "anthropic_api" } });
+  expect(saved.textContent).toBe(frozen);
+  fireEvent.click(screen.getByRole("button", { name: /claude-haiku-5-5 · 1개 분석 구간/ }));
+  await waitFor(() => expect(within(saved).queryByText("로컬 실행 미검증 · 문서 계획만 가능")).toBeNull());
+  expect(within(saved).getByText(/anthropic · claude-haiku-5-5/)).toBeTruthy();
+  expect(posts()).toHaveLength(0);
+});
+
+it.each([
+  ["missing snapshot", undefined], ["execution claim", { ...localCapability, execution_available: true }],
+  ["verified locality claim", { ...localCapability, locality: "VERIFIED" }],
+])("retains the same local request after a V2 response with %s", async (_name, capability) => {
+  useLocalPlans(); await open(); enterLocalBudget();
+  const previous = vi.mocked(api.fetchJson).getMockImplementation()!;
+  let corrupt = true;
+  vi.mocked(api.fetchJson).mockImplementation(async (url, options) => {
+    const result = await previous(url, options);
+    if (options?.method === "POST" && corrupt) { corrupt = false; return { ...result as object, local_capability: capability } as never; }
+    return result;
+  });
+  fireEvent.click(screen.getByRole("button", { name: "전문 분석 계획 저장" }));
+  await screen.findByText(/document_plan_local_capability_invalid/);
+  expect(screen.queryByRole("region", { name: "저장된 전문 분석 계획" })).toBeNull();
+  expect(screen.getByRole("button", { name: "저장된 모델 설정 확인" }).matches(":disabled")).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "같은 전문 계획 요청 확인" }));
+  await screen.findByRole("region", { name: "저장된 전문 분석 계획" });
+  expect(posts()[1][1]!.body).toBe(posts()[0][1]!.body);
+});
+
+it("rejects a local configuration that presents an assumed context capacity", async () => {
+  vi.mocked(api.fetchJson).mockImplementation(async url => url.endsWith("/configuration")
+    ? { ...localSettings, choices: [{ ...localSettings.choices[0], context_tokens: 131072 }] } as never
+    : { items: [], hasMore: false } as never);
+  render(<ReviewDocumentPlan root="/api/topics/topic/paper-bank/version/review-preparations" source={source} onBusyChange={busy} onOpenPreparation={openPrep}/>);
+  fireEvent.click(screen.getByText("모델 예산으로 전문·절별 분석 준비"));
+  await screen.findByText(/document_plan_local_configuration_invalid/);
+  expect(screen.queryByRole("button", { name: "전문 분석 계획 저장" })).toBeNull();
+  expect(posts()).toHaveLength(0);
+});

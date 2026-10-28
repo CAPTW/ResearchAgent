@@ -26,8 +26,9 @@ function Workspace({root, source, disabled, onBusyChange, onOpenPreparation, onO
   useEffect(() => { onBusyChange(busy || pending !== null || pendingUnit !== null); }, [busy, pending, pendingUnit, onBusyChange]);
   function choose(value: string, configuration = config) {
     const item = configuration?.choices.find(c => c.connector_id === value);
+    const local = item?.plan_schema_version === "PAPER_DOCUMENT_PLAN_V2";
     setConnector(value); setModel(item?.model ?? ""); setContext(item?.context_tokens ? String(item.context_tokens) : "");
-    setInput(item?.context_tokens ? String(Math.max(0, item.context_tokens - 2200 - 8192)) : ""); setOutput("2200"); setSafety("8192");
+    setInput(item?.context_tokens ? String(Math.max(0, item.context_tokens - 2200 - 8192)) : ""); setOutput(local ? "" : "2200"); setSafety(local ? "" : "8192");
     setNotice("");
   }
   useEffect(() => {
@@ -42,7 +43,9 @@ function Workspace({root, source, disabled, onBusyChange, onOpenPreparation, onO
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [root, page, revision]);
   const storedChoice = config?.choices.find(choice => choice.connector_id === connector);
+  const localDraft = storedChoice?.plan_schema_version === "PAPER_DOCUMENT_PLAN_V2";
   const valid = source && storedChoice && model.trim() && number(context) >= 8192 && number(input) >= 4096
+    && number(context) <= (storedChoice.max_context_tokens ?? 2000000)
     && number(output) >= 256 && number(output) <= 8000 && number(safety) >= 1024
     && number(input) + number(output) + number(safety) <= number(context);
   const locked = busy || pending !== null || pendingUnit !== null || disabled;
@@ -61,7 +64,8 @@ function Workspace({root, source, disabled, onBusyChange, onOpenPreparation, onO
   function applyStoredModel() {
     if (lock.current || locked || loading || !storedChoice) return;
     choose(connector);
-    setNotice("선택한 연결의 저장 모델과 기본 예산을 다음 계획 입력에 적용했습니다. 과거 계획·실행은 바뀌지 않았습니다.");
+    setNotice(localDraft ? "선택한 로컬 모델을 다음 계획 입력에 적용했습니다. 예산 네 항목을 직접 입력하세요. 과거 계획·실행은 바뀌지 않았습니다."
+      : "선택한 연결의 저장 모델과 기본 예산을 다음 계획 입력에 적용했습니다. 과거 계획·실행은 바뀌지 않았습니다.");
   }
   async function save() {
     if (lock.current || (!pending && (!valid || disabled))) return;
@@ -95,18 +99,21 @@ function Workspace({root, source, disabled, onBusyChange, onOpenPreparation, onO
   return <section aria-label="전문 분석 계획" className="review-preparation-record">
     <p>선택한 저장 본문 전체를 모델별 예산 안에 배치합니다. 들어가면 전문 1개, 넘으면 절·문장 경계로 나눕니다. 준비만 저장하며 모델 호출·키 읽기·외부 전송은 하지 않습니다.</p>
     <p>토큰은 로컬 UTF-8 바이트 기반 보수적 추정치입니다. 지시문·JSON 스키마·문맥을 포함하며 실제 토크나이저의 정확한 수치나 비용 상한이 아닙니다.</p>
-    <p><a href="/app/settings">설정에서 모델·API 키 관리</a> → 구간 준비 → Native V2 전송 내용 확인 → 해당 요청의 1회 승인 → 실행. 저장된 결과 조회는 새 호출을 하지 않습니다.</p>
+    {localDraft ? <p><a href="/app/settings">설정에서 로컬 모델 관리</a> → 예산 직접 입력 → 문서 계획·구간 입력 저장. 실제 모델 실행 경로는 아직 연결하지 않았습니다.</p>
+      : <p><a href="/app/settings">설정에서 모델·API 키 관리</a> → 구간 준비 → Native V2 전송 내용 확인 → 해당 요청의 1회 승인 → 실행. 저장된 결과 조회는 새 호출을 하지 않습니다.</p>}
     {loading ? <p role="status">모델 예산·계획 이력 확인 중</p> : null}
     {config ? <fieldset disabled={locked || loading}><legend>이번 분석에 사용할 AI</legend>
       <p>아래 선택은 새로 저장할 계획에만 적용됩니다. 이미 저장한 계획과 진행 중 실행의 모델은 유지됩니다.</p>
       <label htmlFor={`${id}-connector`}>분석 연결<select id={`${id}-connector`} value={connector} onChange={e => choose(e.target.value)}>{!storedChoice ? <option value={connector} disabled>{connector || "연결 미선택"} · 설정 목록에 없음</option> : null}{config.choices.map(c => <option key={c.connector_id} value={c.connector_id}>{c.display_name}</option>)}</select></label>
       {!storedChoice ? <p role="status">선택한 연결이 최근 확인한 설정 목록에 없습니다. 다른 연결을 선택하세요. 현재 모델 입력은 유지됩니다.</p> : null}
       <p>최근 확인한 저장 모델: {storedChoice?.model || "미선택"}</p>
-      <p>저장 모델을 적용하면 현재 입력한 모델과 컨텍스트·입력·출력·추정 오차 여유 예산을 해당 모델의 기본값으로 바꿉니다. 저장한 계획은 유지됩니다.</p>
+      <p>{localDraft ? "로컬 저장 모델을 적용하면 예산 네 항목을 비웁니다. 사용할 컨텍스트·입력·출력·추정 오차 여유 예산을 직접 입력하세요. 저장한 계획은 유지됩니다."
+        : "저장 모델을 적용하면 현재 입력한 모델과 컨텍스트·입력·출력·추정 오차 여유 예산을 해당 모델의 기본값으로 바꿉니다. 저장한 계획은 유지됩니다."}</p>
       <V2Button onClick={() => void refreshSettings()}>저장된 모델 설정 확인</V2Button>
       <V2Button disabled={!storedChoice} onClick={applyStoredModel}>선택 연결의 저장 모델 적용</V2Button>
-      <label htmlFor={`${id}-model`}>계획 모델 ID<input id={`${id}-model`} value={model} onChange={e => { setModel(e.target.value); setContext(""); setInput(""); setNotice(""); }}/></label>
-      <p>문서화된 모델은 컨텍스트 값을 채웁니다. 알 수 없는 ID·별칭은 해당 모델의 공식 사양을 확인해 입력하세요. 모델을 바꿔도 과거 계획·결과는 바뀌지 않습니다.</p>
+      <label htmlFor={`${id}-model`}>계획 모델 ID<input id={`${id}-model`} value={model} onChange={e => { setModel(e.target.value); setContext(""); setInput(""); if (localDraft) { setOutput(""); setSafety(""); } setNotice(""); }}/></label>
+      {localDraft ? <><p><strong>로컬 실행 미검증 · 문서 계획만 가능</strong></p><p>설치된 모델·실제 로컬 추론·컨텍스트 용량을 확인하지 않았습니다. 입력한 모델과 예산은 사용자 선택값이며 용량 보증이 아닙니다. 계획 요청의 컨텍스트 한도는 1,000,000 토큰이고 실제 모델 용량과 다릅니다.</p></>
+        : <p>문서화된 모델은 컨텍스트 값을 채웁니다. 알 수 없는 ID·별칭은 해당 모델의 공식 사양을 확인해 입력하세요. 모델을 바꿔도 과거 계획·결과는 바뀌지 않습니다.</p>}
       <div className="review-preparation-range">{([
         ["context", "모델 컨텍스트 토큰", context, setContext], ["input", "요청당 입력 토큰 예산", input, setInput],
         ["output", "출력 토큰 예약", output, setOutput], ["safety", "추정 오차 여유 토큰", safety, setSafety],
@@ -125,6 +132,7 @@ function Workspace({root, source, disabled, onBusyChange, onOpenPreparation, onO
     {plan ? <section aria-label="저장된 전문 분석 계획">
       <h5>{plan.mode === "WHOLE_EXTRACTED_TEXT" ? "전체 추출 본문 1개 요청" : `절별 분석 ${plan.units.length}개 요청`}</h5>
       <p>{plan.budget.provider_name} · {plan.budget.model} · 요청당 입력 예산 {plan.budget.input_tokens.toLocaleString("ko-KR")} 토큰</p>
+      {plan.schema_version === "PAPER_DOCUMENT_PLAN_V2" ? <><p><strong>로컬 실행 미검증 · 문서 계획만 가능</strong></p><p>이 계획을 저장할 때 runtime·모델 신원·실제 로컬 추론·컨텍스트 용량을 확인하지 않았습니다. Settings 변경은 이 기록을 바꾸지 않습니다. 구간 입력 준비는 로컬 저장이며 모델 실행·외부 전송을 시작하지 않습니다.</p></> : null}
       <p>절 제목은 정규화된 본문에서 찾은 휴리스틱입니다. 제목을 못 찾거나 한 절이 너무 길면 문장·단어 경계로 나눕니다. 각 구간은 같은 목차와 앞뒤 최대 256자 문맥을 연결하며, 주변 문맥은 그 구간의 분석 완료 범위에 더하지 않습니다.</p>
       <p>대상은 확보·추출된 텍스트입니다. PDF의 이미지·표·누락 페이지까지 읽었다는 뜻이 아닙니다. 과학적 뒷받침·전체 논문 검토·사람의 채택은 별도입니다.</p>
       <V2Button disabled={locked} onClick={() => void open(plan.plan_id)}>이 계획 결과 다시 조회</V2Button>

@@ -20,11 +20,27 @@ to subsequent runs; past execution metadata and results remain immutable.
 In **모델 예산으로 전문·절별 분석 준비**, the **이번 분석에 사용할 AI** section
 controls the next plan. **저장된 모델 설정 확인** rereads Settings without replacing
 unsaved model or budget inputs. **선택 연결의 저장 모델 적용** explicitly fills that
-connection's saved model and default input/output/safety budgets. Recheck them
-before saving. A removed connection stays visible and cannot silently switch to
+connection's saved model and available default budgets. Ollama clears all four
+budget inputs for explicit entry as described below. Recheck them before saving.
+A removed connection stays visible and cannot silently switch to
 another service. Pending or unknown save/unit requests lock these changes until
 the existing request is reconciled. Saved plans retain their own original models.
 These controls prepare a plan; they do not make a paid call or add local inference.
+
+For local planning, choose **Ollama · 로컬 실행 준비** in Settings and save an
+explicit model ID. This stores preferences without probing a server, installing
+a model or using a key. In Papers, apply the saved model and enter all four
+budgets: context, input, output and safety allowance. The app deliberately leaves
+these empty for Ollama because it has not verified the installed model's capacity.
+The 1,000,000-token request ceiling is an app bound, not a model specification.
+
+Save the document plan, then prepare its individual input units locally. Ollama
+plans retain a separate V2 capability snapshot marking actual inference as
+unavailable and locality/model/capacity as unverified. Existing V1 plans remain
+readable without changing their identities or hashes. Changing Settings does not
+rewrite a saved plan; after an uncertain response, reconcile the same request.
+Model execution and Journal generation through Ollama are not enabled by this
+planning feature. No external model is substituted automatically.
 
 The local Native Anthropic route requires an exact prepared input, stored key
 revision and one-attempt approval bound to actor/topic/request/target/expiry.
@@ -40,6 +56,28 @@ subscription, account, paper or model. Small local-model task quality and actual
 local inference still require a separate capability-specific evaluation.
 
 ## From a PDF to a prepared request
+
+### Local-model protocol development
+
+An unregistered Ollama chat adapter now supports synthetic transport checks for
+the existing prepared-review contracts. It requires an explicit `httpx.MockTransport`;
+it cannot open a default network transport, start a runtime or execute a model.
+It freezes the request/schema/budget and keeps the HTTP response envelope separate
+from the analysis JSON. Incomplete output, invalid JSON and unknown transport
+outcomes remain distinct. Reported durations and token counters are not measured
+performance or independently verified usage.
+
+Settings and document planning reuse its serialization rules, but the adapter
+is not registered as an executable analysis path. Locality, installed model
+identity, context capacity and scientific quality remain unverified.
+A loopback URL alone does not prove local inference; Ollama can route cloud models.
+The protocol follows the official [chat API](https://docs.ollama.com/api/chat) and
+[local/cloud configuration guidance](https://docs.ollama.com/faq). No runtime
+configuration or model installation is changed by this adapter.
+
+Run its synthetic checks with `uv run --frozen --extra dev pytest tests/test_ollama_prepared_review.py -q`.
+
+### Prepare document units
 
 1. Open a paper in Papers. Under **본문 구간 검토 준비**, choose
    **PDF 전체 텍스트 추출·범위 확인 → 내 PDF 파일 연결** if no PDF is linked.

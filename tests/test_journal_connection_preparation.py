@@ -95,7 +95,7 @@ def test_codex_default_summary_is_topic_scoped_and_never_execution_authority(sel
     assert not connections.STATE_PATH.exists()
 
 
-@pytest.mark.parametrize("connector", tuple(connections.BY_ID))
+@pytest.mark.parametrize("connector", tuple(identity for identity, connector in connections.BY_ID.items() if connector.adapter_available))
 def test_saved_connection_prepares_exact_request_without_selecting_adapter_or_reading_credentials(selected, connector, monkeypatch):
     _, client, url, body, _, _ = selected
     save_connection(connector, "selected-model")
@@ -114,6 +114,22 @@ def test_saved_connection_prepares_exact_request_without_selecting_adapter_or_re
     assert saved["contract"]["actor_id"] == "local-internal-user"
     assert saved["contract"]["activation"] == "UNREGISTERED_ADAPTER_CONTRACT"
     assert saved["current"]["state"] == "READY" and saved["current"]["attempt"] == 0 and saved["events"] == []
+
+
+def test_local_planning_connection_cannot_prepare_journal_execution_or_mutate_store(selected):
+    _, client, url, body, _, _ = selected
+    save_connection("ollama_local", "synthetic-local-model")
+    before = stored_state()
+    response = client.get(summary_url(url))
+    assert response.status_code == 200
+    value = response.json()
+    assert (value["connector_id"], value["provider_name"], value["auth_mode"]) == ("ollama_local", "ollama", "local_runtime")
+    assert value["ready"] is False and value["execution_allowed"] is False
+    assert value["reason"] == "model_connection_adapter_unavailable"
+    rejected = client.post(url + "/selected-connection", json=request_body(client, url, body))
+    assert rejected.status_code == 409 and rejected.json()["detail"] == "model_connection_adapter_unavailable"
+    assert client.get(url).json()["total"] == 0
+    assert stored_state() == before
 
 
 @pytest.mark.parametrize("override,connector,provider,ready", (

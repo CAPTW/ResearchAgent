@@ -206,7 +206,37 @@ compile, startup and fixture-immutability steps were skipped. Windows completed
 The backend job now has a 30-minute overall allowance to reach the full result
 and post-test checks. Test selection, assertions, fail-fast behavior, individual
 limits and the installed-app startup criterion are unchanged. The new CI outcome
-is still unverified; the cancelled run remains evidence.
+must be read separately; the cancelled run remains evidence.
+
+Source `22ce080a` was published as `520eef6d`. Its
+[CI run](https://github.com/CAPTW/ResearchAgent/actions/runs/40682633800) reached
+a concrete scheduler migration-plan digest assertion: 5,862 passed, 85 skipped,
+one failed and four warnings in 1,212.94 seconds. The job ended by fail-fast,
+not timeout; later PDF, compile, startup and fixture-immutability checks were
+skipped. Windows passed 306 tests, and frontend passed 1,080 tests plus 13
+extension fixtures and built successfully. Those checks apply to the CI-budget
+snapshot before the local-model feature below. A controlled reproduction found
+that SQLite 3.45.1 and 3.50.4 generated the same synthetic schema and file size,
+but different writer-version header bytes. The file fingerprint alone accounts
+for the exact failing digest. Windows and Linux using 3.50.4 agreed; the hosted
+runner's SQLite version was not observed. The test now freezes the V1 digest's
+semantic payload independently while binding its expected fingerprint and size
+to the actual generated file. A changed-file control must reject the old approval
+without a backup or write. Production digest and migration authorization are
+unchanged. The new local feature has focused verification rather than a complete
+hosted backend result.
+
+Local-model planning now has an explicit Ollama connection, manually supplied
+budgets and a separate V2 plan snapshot. Existing V1 plans retain their identities
+and readback. Preparing units stores local inputs without enabling inference or
+Journal execution. Synthetic transport records retain their fixture origin;
+reserved markers and contradictory response bytes are checked on receipt write
+and read. Removing the marker cannot promote an Ollama prepared result to a live
+Provider response. Unsigned consistency checks are not authenticity proof.
+Focused backend/component checks, TypeScript and a production build passed.
+Actual interactive UI acceptance and local runtime/model/quality qualification
+remain unverified. The [connection guide](MODEL_CONNECTIONS.md) describes the
+implemented planning flow and its execution limits.
 
 `tools/package_source_distribution.py` reads the committed Git object tree and
 its committed content policy. `--allow-dirty` exports **committed HEAD only**;

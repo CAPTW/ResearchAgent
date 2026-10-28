@@ -12,17 +12,22 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.domain.constants import STORAGE_ROOT
+from app.domain.review_document_plan import LOCAL_CONNECTOR, local_capability_v1, local_model_valid
 from app.repositories.shared_state import SharedStateSchemaInvalid, load_json_state, mutate_json_state
 
 STATE_PATH: Path = STORAGE_ROOT.parent / "model-connections.json"
 SCHEMA = "MODEL_CONNECTIONS_V1"
+SCHEMA_V2 = "MODEL_CONNECTIONS_V2"
+CATALOG_SCHEMA = "MODEL_CONNECTORS_V2"
+CONNECTOR_IDS_V1 = frozenset({"codex_subscription", "claude_subscription", "antigravity_subscription",
+    "grok_subscription", "openai_api", "xai_api", "anthropic_api"})
 
 
 @dataclass(frozen=True)
 class Connector:
     connector_id: str
     display_name: str
-    auth_mode: Literal["subscription_cli", "api_key"]
+    auth_mode: Literal["subscription_cli", "api_key", "local_runtime"]
     provider_name: str
     adapter_available: bool
     credential_env: str | None
@@ -54,6 +59,9 @@ CONNECTORS = (
     Connector("anthropic_api", "Claude · Anthropic API 키", "api_key", "anthropic", True, "ANTHROPIC_API_KEY", None,
         "아래 API 키 관리에서 Anthropic Console 키를 입력하고 암호화 저장합니다. Claude 구독과 별도 API 과금입니다.",
         "https://platform.claude.com/docs/en/api/messages/create", "논문 검토·Journal Messages 어댑터 준비됨. API 키 경로이며 실제 호출·요금·모델 검증은 별도입니다."),
+    Connector(LOCAL_CONNECTOR, "Ollama · 로컬 실행 준비", "local_runtime", "ollama", False, None, None,
+        "모델 이름과 문서 계획 예산만 저장합니다. 이 화면은 설치·실행·모델 다운로드·로컬 서버 조회를 하지 않습니다.",
+        "https://docs.ollama.com/faq", "합성 전송 계약과 로컬 문서 계획을 지원합니다. 실제 추론은 미연결이며 설치 모델·로컬성·컨텍스트 용량은 확인하지 않았습니다."),
 )
 BY_ID = {item.connector_id: item for item in CONNECTORS}
 ALIASES = {item.provider_name: item.connector_id for item in CONNECTORS} | {"codex": "codex_subscription"}
@@ -62,7 +70,8 @@ ALIASES = {item.provider_name: item.connector_id for item in CONNECTORS} | {"cod
 def _valid_models(models: dict[str, str]) -> bool:
     return all(key in BY_ID and (value == "" or (
         re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}", value) is not None
-        and not value.lower().startswith(("sk-", "xai-", "ya29.")))) for key, value in models.items())
+        and not value.lower().startswith(("sk-", "xai-", "ya29."))
+        and (key != LOCAL_CONNECTOR or local_model_valid(value)))) for key, value in models.items())
 
 
 class Update(BaseModel):
@@ -84,9 +93,12 @@ def _default() -> dict[str, Any]:
 
 def _validate(value: dict[str, Any]) -> dict[str, Any]:
     try:
-        if set(value) != set(_default()) or value["schema_version"] != SCHEMA:
+        if set(value) != set(_default()) or value["schema_version"] not in {SCHEMA, SCHEMA_V2}:
             raise ValueError()
         Update(expected_revision=value["revision"], default_connector_id=value["default_connector_id"], models=value["models"])
+        if value["schema_version"] == SCHEMA and (value["default_connector_id"] not in CONNECTOR_IDS_V1
+                or not set(value["models"]).issubset(CONNECTOR_IDS_V1)):
+            raise ValueError()
         return value
     except (ValueError, TypeError, KeyError):
         raise SharedStateSchemaInvalid("model_connections") from None
@@ -120,10 +132,11 @@ def status(state: dict[str, Any] | None = None) -> dict[str, Any]:
             return None
     saved = read() if state is None else state
     effective, override = selection(saved)
-    return dict(revision=saved["revision"], default_connector_id=saved["default_connector_id"],
+    return dict(schema_version=saved["schema_version"], catalog_schema_version=CATALOG_SCHEMA,
+        revision=saved["revision"], default_connector_id=saved["default_connector_id"],
         effective_connector_id=effective, environment_override=override, execution_allowed=False,
         connectors=[dict(asdict(item), model=saved["models"].get(item.connector_id, ""),
-            credential_present=present(item))
+            credential_present=present(item), local_capability=local_capability_v1() if item.connector_id == LOCAL_CONNECTOR else None)
             for item in CONNECTORS])
 
 
@@ -135,7 +148,7 @@ def save(body: Update) -> dict[str, Any]:
         same = current["default_connector_id"] == body.default_connector_id and current["models"] == body.models
         if current["revision"] != body.expected_revision and not same:
             raise ValueError("model_connections_changed")
-        value = current if same else dict(schema_version=SCHEMA, revision=current["revision"] + 1,
+        value = current if same else dict(schema_version=SCHEMA_V2, revision=current["revision"] + 1,
             default_connector_id=body.default_connector_id, models=dict(body.models))
         return value, value
     saved = mutate_json_state(STATE_PATH, state_name="model_connections", expected_type=dict, default=_default, mutate=mutate)

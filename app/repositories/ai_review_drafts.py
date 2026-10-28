@@ -110,6 +110,9 @@ def _receipt_content(payload: dict[str, Any], packet: dict[str, Any], origin: st
         if (origin == "PROVIDER_RESPONSE"
                 and validation["prepared_execution"]["contract"]["provider_name"] == "xrml_offline_review"):
             raise ValueError("paper_offline_transport_invalid")
+        if (origin == "PROVIDER_RESPONSE"
+                and validation["prepared_execution"]["contract"]["provider_name"] == "ollama"):
+            raise ValueError("paper_ollama_transport_invalid")
     codex_v2_manifest = (isinstance(execution, dict) and isinstance(execution.get("manifest"), dict)
                          and execution["manifest"].get("schema_version") == "CODEX_PREPARED_REVIEW_CLI_V2")
     if isinstance(execution, dict) and (execution.get("adapter_id") == "xrml-codex-prepared-review"
@@ -144,6 +147,13 @@ def _receipt_content(payload: dict[str, Any], packet: dict[str, Any], origin: st
         from app.services.providers.anthropic_prepared_review import validate_origin as validate_anthropic_origin
         validate_anthropic_transport(content, packet)
         validate_anthropic_origin(execution["manifest"], origin)
+    ollama_manifest = (isinstance(execution, dict) and isinstance(execution.get("manifest"), dict)
+                       and execution["manifest"].get("schema_version") == "OLLAMA_PREPARED_REVIEW_WIRE_V1")
+    if isinstance(execution, dict) and (execution.get("adapter_id") == "xrml-ollama-prepared-review"
+                                      or execution.get("schema_version") == "PREPARED_REVIEW_OLLAMA_MOCK_TRANSPORT_V1"
+                                      or ollama_manifest):
+        from app.services.providers.ollama_prepared_review import validate_transport as validate_ollama_transport
+        validate_ollama_transport(content, packet)
     if isinstance(execution, dict) and (execution.get("adapter_id") == "xrml-claude-prepared-review"
                                       or execution.get("schema_version") == "PREPARED_REVIEW_CLAUDE_CLI_TRANSPORT_V1"):
         from app.services.providers.claude_prepared_review_plan import validate_transport as validate_claude_transport

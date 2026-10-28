@@ -89,6 +89,12 @@ def describe_provider_status() -> dict[str, object]:
             live_call_enabled=False, canonicalStatus="configured_not_verified", routingLabel="live_proof_required",
             researchOutputAllowed=False, reportGenerationAllowed=False, orchestrationAllowed=False,
             statusMessage=message, warnings=[message])
+    if provider_name == "ollama":
+        message = "Ollama selected for local document planning only; runtime, model identity and local inference remain unverified. Execution is unavailable."
+        return dict(provider="ollama", provider_mode="local_planning_only", configured=False,
+            live_call_enabled=False, canonicalStatus="configured_not_verified", routingLabel="setup_required",
+            researchOutputAllowed=False, reportGenerationAllowed=False, orchestrationAllowed=False,
+            locality="LOCALITY_NOT_VERIFIED", runtime_presence="NOT_CHECKED", statusMessage=message, warnings=[message])
     if provider_name in {"claude_code", "antigravity_cli", "grok_cli", "xai", "anthropic"}:
         from app.services.model_connections import CONNECTORS
         connector = next(item for item in CONNECTORS if item.provider_name == provider_name)
