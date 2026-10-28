@@ -33,6 +33,13 @@ source = selected_prior.source
 oidc_api = selected_prior.oidc_api
 
 
+@pytest.fixture(autouse=True)
+def _quiescent_preview_store(monkeypatch):
+    # Whole-store immutability checks isolate preview reads from independent scheduler writes.
+    # Apply before workspace app construction and keep it set during restart.
+    monkeypatch.setenv("TOPIC_SCHEDULER_ENABLED", "0")
+
+
 def stored_state():
     with closing(bootstrap.connect_metadata_index(read_only=True)) as connection:
         return tuple(connection.iterdump())

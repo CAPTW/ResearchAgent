@@ -140,6 +140,12 @@ Official actionlint 1.7.12 reproduces the original context error and reports no
 diagnostics for the corrected workflow. The 103 workflow-contract and 49 public-link
 tests pass. Hosted runner execution remains a separate check.
 
+Local Linux qualification additionally found that the preview immutability test
+included a background scheduler's index timestamp writes. A restart with no GET
+requests reproduced those writes. The test now disables that unrelated worker in
+its own fixture while retaining the original full-database equality and frozen
+execution assertions. Product scheduling and its separate tests are unchanged.
+
 `tools/package_source_distribution.py` reads the committed Git object tree and
 its committed content policy. `--allow-dirty` exports **committed HEAD only**;
 it does not include pending changes or let an uncommitted policy admit private
