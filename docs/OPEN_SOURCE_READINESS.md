@@ -128,6 +128,18 @@ first failure with a traceback. Hosted Windows acceptance remains unverified unt
 that job executes; real Whale connection and installed first-start failure remain
 unresolved.
 
+The reviewed `bb5228a` snapshot was synchronized as `0cd4f57`. Its
+[CI run](https://github.com/CAPTW/ResearchAgent/actions/runs/40669046690) failed
+workflow validation before registering any job or running any test: `runner.temp`
+was used in a job-level environment expression, where that context is unavailable.
+The Windows location is now assigned from a step through `GITHUB_ENV`, where the
+runner context is available. This configuration defect was missed by the original
+static and independent review; that failed run remains preserved. The bounded
+local test evidence above does not replace the next valid workflow execution.
+Official actionlint 1.7.12 reproduces the original context error and reports no
+diagnostics for the corrected workflow. The 103 workflow-contract and 49 public-link
+tests pass. Hosted runner execution remains a separate check.
+
 `tools/package_source_distribution.py` reads the committed Git object tree and
 its committed content policy. `--allow-dirty` exports **committed HEAD only**;
 it does not include pending changes or let an uncommitted policy admit private

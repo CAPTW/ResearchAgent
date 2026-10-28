@@ -184,7 +184,9 @@ class TestCiWorkflow:
         assert "needs:" not in windows
         assert "uses: astral-sh/setup-uv@v5" in windows
         assert 'python-version: "3.12.12"' in windows
-        assert "UV_PYTHON_INSTALL_DIR: ${{ runner.temp }}/xrml-python" in windows
+        assert "${{ runner." not in windows.split("\n    steps:", 1)[0]
+        assert ('"UV_PYTHON_INSTALL_DIR=${{ runner.temp }}/xrml-python" '
+                '| Out-File -FilePath $env:GITHUB_ENV') in windows
         assert "uv python install 3.12.12" in windows
         assert FROZEN_SYNC in windows
         assert "sys.platform == 'win32'" in windows

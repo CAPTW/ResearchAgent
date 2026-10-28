@@ -48,6 +48,7 @@ REVIEWED_PUBLIC_LINK_ADDITIONS = {
         "https://github.com/CAPTW/ResearchAgent/actions/runs/40650994849",
         "https://github.com/CAPTW/ResearchAgent/actions/runs/40656979547",
         "https://github.com/CAPTW/ResearchAgent/actions/runs/40661198290",
+        "https://github.com/CAPTW/ResearchAgent/actions/runs/40669046690",
         "https://github.com/actions/python-versions/releases/tag/3.12.12-18393146713",
     }),
 }
