@@ -197,6 +197,17 @@ app construction and were inspected without rerunning them. Independent review,
 49 public-link checks and scoped Ruff passed. These are bounded fixture checks,
 not a completed whole-backend run or actual Provider execution.
 
+The follow-up source `31a970ad` was published as `bac7a3e2`. Its
+[CI run](https://github.com/CAPTW/ResearchAgent/actions/runs/40678066664) was
+cancelled: the backend check explicitly reported its 15-minute job limit.
+Pytest collected 6,965 tests but produced no final summary; later fulltext,
+compile, startup and fixture-immutability steps were skipped. Windows completed
+306 tests; frontend completed 1,080 tests, 13 extension fixtures and the build.
+The backend job now has a 30-minute overall allowance to reach the full result
+and post-test checks. Test selection, assertions, fail-fast behavior, individual
+limits and the installed-app startup criterion are unchanged. The new CI outcome
+is still unverified; the cancelled run remains evidence.
+
 `tools/package_source_distribution.py` reads the committed Git object tree and
 its committed content policy. `--allow-dirty` exports **committed HEAD only**;
 it does not include pending changes or let an uncommitted policy admit private
