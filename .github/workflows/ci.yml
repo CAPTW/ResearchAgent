@@ -110,6 +110,10 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Run browser collector protocol and worker tests
+        working-directory: .
+        run: node --test extensions/whale-collector/protocol.test.js extensions/whale-collector/worker.test.js
+
       - name: Run frontend integration tests
         run: npm run test
 

@@ -85,6 +85,10 @@ host not found** despite the registered key and manifest being present. Its caus
 remains unresolved; do not treat this development path as browser-qualified.
 Chrome/Edge preparation support is not a compatibility claim.
 No native host is bundled into the desktop installer in this checkpoint.
+One separate headless smoke executed the prepared launcher with a framed empty
+object and received the expected `invalid_connection` frame in 0.265 seconds
+(exit 1, no stderr). That checks launcher/config parsing and stdio response only;
+it does not establish that Whale discovers or accepts the host manifest.
 
 App connection codes contain an IPv4 loopback address/port, job ID and revocable
 capability. They are shown only after an explicit action. Do not publish them or
@@ -94,6 +98,13 @@ read files outside the exact attempt path.
 
 ## Recovery and limits
 
+- The extension distinguishes host lookup, access refusal, startup/communication
+  failure and a lost popup response from an expired app connection. Host lookup
+  failure does not establish whether the manifest is missing or could not be
+  interpreted; issuing another connection code does not repair installation.
+  Unexpected error text is replaced with fixed guidance, never echoed with local
+  paths or connection input. A lost response preserves the saved attempt: inspect
+  app state and browser download history before explicitly starting another one.
 - An interrupted item stays in the job. Resolve login/MFA/CAPTCHA manually, then
   prepare resume in the app and explicitly start a new attempt in the extension.
   This state-machine behavior is fixture-tested; arXiv is not an authenticated
@@ -130,6 +141,11 @@ These checks use synthetic PDFs/mocked metadata. Actual extension registration,
 Whale downloads, signed-in sites, installed Tauri and scientific review are
 separate acceptance claims. Current checkpoint results are in
 [open-source readiness](OPEN_SOURCE_READINESS.md).
+The error-guidance follow-up passed 13 protocol/worker tests, including recovery
+with the same saved download ID and no automatic re-download. A loopback synthetic
+popup displayed lookup, refusal, exit and unknown-error guidance and supported
+Enter-to-refresh in its 360-pixel content layout. This was an ordinary browser
+page with a stubbed transport, not an extension/native-host acceptance test.
 
 ## Official interfaces consulted
 

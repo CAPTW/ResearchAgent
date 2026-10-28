@@ -237,7 +237,7 @@ def _validate_pdf(raw: bytes) -> int:
     if not raw.startswith(b"%PDF-") or not raw.rstrip().endswith(b"%%EOF"):
         raise ValueError("browser_collection_pdf_invalid_or_incomplete")
     try:
-        import fitz  # type: ignore[import-untyped]
+        import fitz  # type: ignore[import-not-found, import-untyped]
     except ImportError:
         raise ValueError("browser_collection_pdf_engine_unavailable") from None
     try:

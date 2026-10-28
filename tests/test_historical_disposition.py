@@ -21,38 +21,40 @@ from __future__ import annotations
 
 import os
 import re
-import subprocess
 from pathlib import Path, PurePosixPath
 
 import pytest
 
+from tests.source_tree_context import inspect_source_tree
 from tools import public_content_policy as pcp
 from tools import public_path_scan as pps
-from tests.history_contract_baseline import current_bytes_match, historical_urls
+from tests.history_contract_baseline import (
+    retained_document_bytes_match, source_historical_urls, source_url_paths,
+)
 
 REPO = Path(__file__).resolve().parents[1]
 BASE_COMMIT = "d0cd79647d0cc9ff30466e78b8358840999797d7"
+# These later planning records are intentionally maintained; neither exists in
+# the historical base. Their internal-only role and tracked presence stay checked.
+MAINTAINED_INTERNAL_DOCUMENTS = frozenset({
+    "docs/roadmap/current-local-status.md", "docs/roadmap/model-connections.md",
+})
+# Owner-provided destination and observed run/build evidence, not invented hosts.
+# Keep additions per document and exact URL; a broad host exemption hides errors.
+REVIEWED_PUBLIC_LINK_ADDITIONS = {
+    "docs/OPEN_SOURCE_READINESS.md": frozenset({
+        "https://github.com/CAPTW/ResearchAgent",
+        "https://github.com/CAPTW/ResearchAgent/actions/runs/40347030351",
+        "https://github.com/CAPTW/ResearchAgent/actions/runs/40650994849",
+        "https://github.com/actions/python-versions/releases/tag/3.12.12-18393146713",
+    }),
+}
 THREE_NAMED = (
     "docs/LOCAL_AGENT_RUNTIME.md",
     "docs/SCHEDULED_LOCAL_RESEARCH.md",
     "docs/STORAGE_PORTABILITY.md",
 )
 LINK = re.compile(r"\]\(([^)\s]+)")
-
-
-def _is_git_checkout() -> bool:
-    return (REPO / ".git").exists()
-
-
-requires_repository = pytest.mark.skipif(
-    not _is_git_checkout(), reason="extracted source carries no Git history"
-)
-
-
-def tracked() -> list[str]:
-    out = subprocess.run(["git", "-C", str(REPO), "ls-tree", "-r", "--name-only", "HEAD"],
-                         capture_output=True, text=True, check=True).stdout
-    return [p for p in out.split("\n") if p]
 
 
 @pytest.fixture(scope="module")
@@ -76,14 +78,18 @@ def _local_links(doc: str) -> list[str]:
     return targets
 
 
+@pytest.fixture(scope="module", autouse=True)
+def source_context(policy):
+    return inspect_source_tree(REPO, policy)
+
+
 class TestFinalDisposition:
     def test_every_governed_path_is_settled(self, policy) -> None:
         assert set(policy.dispositions) == set(policy.documents)
         assert set(policy.dispositions.values()) <= pcp.DISPOSITION_STATUSES
 
-    @requires_repository
-    def test_no_unresolved_disposition_remains(self, policy) -> None:
-        assert policy.unresolved(tracked()) == []
+    def test_no_unresolved_disposition_remains(self, policy, source_context) -> None:
+        assert policy.unresolved(list(source_context.paths)) == []
 
     def test_every_governed_path_carries_a_reason_code(self, policy) -> None:
         missing = [p for p in policy.documents if not policy.reason_codes.get(p)]
@@ -143,19 +149,24 @@ class TestFinalDisposition:
 
 
 class TestDClassInternalHistorical:
-    @requires_repository
-    def test_internal_documents_stay_tracked(self, policy) -> None:
-        present = set(tracked())
+    def test_internal_documents_are_preserved_or_excluded(self, policy, source_context) -> None:
+        present = set(source_context.paths)
         internal = [p for p, r in policy.documents.items() if r == "INTERNAL_HISTORICAL"]
         assert internal, "expected internal historical documents"
+        if source_context.is_public:
+            source_context.assert_excluded(internal)
+            return
         assert all(p in present for p in internal), "an internal document left the repository"
 
-    @requires_repository
-    def test_internal_blobs_are_byte_identical_to_the_base(self, policy) -> None:
-        """Exclusion is the control. Editing an excluded file would be pointless
-        churn at best and a quiet history rewrite at worst."""
+    def test_internal_blobs_match_the_retained_document_contract(self, policy, source_context) -> None:
+        """Preserve old evidence and the separately pinned operational revision."""
         internal = sorted(p for p, r in policy.documents.items() if r == "INTERNAL_HISTORICAL")
-        changed = [path for path in internal if not current_bytes_match(REPO, BASE_COMMIT, path)]
+        assert MAINTAINED_INTERNAL_DOCUMENTS <= set(internal)
+        if source_context.is_public:
+            source_context.assert_excluded(internal)
+            return
+        changed = [path for path in internal if path not in MAINTAINED_INTERNAL_DOCUMENTS
+                   and not retained_document_bytes_match(REPO, BASE_COMMIT, path)]
         assert changed == [], f"internal historical documents were edited: {changed[:5]}"
 
     def test_audit_and_milestone_families_are_internal(self, policy) -> None:
@@ -222,18 +233,18 @@ class TestThreeNamedDocuments:
         assert policy.dispositions[path] == "internal_historical_final"
 
     @pytest.mark.parametrize("path", THREE_NAMED)
-    @requires_repository
-    def test_each_is_byte_identical_to_the_base(self, path: str) -> None:
-        assert current_bytes_match(REPO, BASE_COMMIT, path), (
-            f"{path} was edited; this lane retains it unchanged"
+    def test_each_matches_its_retained_document_contract(self, path: str, source_context) -> None:
+        if source_context.is_public:
+            source_context.assert_excluded([path])
+            return
+        assert retained_document_bytes_match(REPO, BASE_COMMIT, path), (
+            f"{path} differs from its explicitly retained contract"
         )
 
-    @requires_repository
     def test_the_family_is_not_split(self, policy) -> None:
         roles = {policy.documents[p] for p in THREE_NAMED}
         assert len(roles) == 1, "the dependent family was split across public and internal"
 
-    @requires_repository
     def test_no_public_document_depends_on_them(self, policy) -> None:
         needed = set()
         for doc in policy.public_documents():
@@ -297,10 +308,9 @@ class TestPublicLinkClosure:
                  if policy.is_document(t) and t not in ship]
         assert leaks == [], f"public documents depending on excluded ones: {leaks}"
 
-    @requires_repository
-    def test_link_targets_match_case_exactly(self, policy) -> None:
+    def test_link_targets_match_case_exactly(self, policy, source_context) -> None:
         """A case-only match works on Windows and breaks everywhere else."""
-        present = set(tracked())
+        present = set(source_context.paths)
         folded = {p.lower(): p for p in present}
         wrong = [f"{doc} -> {t}" for doc in self._public_docs(policy)
                  for t in _local_links(doc)
@@ -313,8 +323,7 @@ class TestPublicLinkClosure:
                     if t.startswith("/") or t.startswith("..") or ".." in PurePosixPath(t).parts]
         assert escaping == [], f"links escaping the root: {escaping}"
 
-    @requires_repository
-    def test_no_repository_url_was_invented(self, policy) -> None:
+    def test_no_repository_url_was_invented(self, policy, source_context) -> None:
         """Differential, because the question is whether *this* change fabricated one.
 
         Public documents already reference a staging host and an `example.com`
@@ -323,22 +332,15 @@ class TestPublicLinkClosure:
         self-referential URL appeared, not that none exists.
         """
         url = re.compile(r"https?://[^\s`'\")<>]+")
-        present_at_base = {
-            line
-            for line in subprocess.run(
-                ["git", "-C", str(REPO), "ls-tree", "-r", "--name-only", BASE_COMMIT],
-                capture_output=True,
-                text=True,
-                check=True,
-            ).stdout.splitlines()
-            if line
-        }
+        present_at_base = source_url_paths(source_context, BASE_COMMIT)
         for doc in self._public_docs(policy):
             if doc not in present_at_base:
                 continue
             after = set(url.findall((REPO / doc).read_text(encoding="utf-8", errors="replace")))
-            before = historical_urls(REPO, BASE_COMMIT, doc)
-            assert after - before == set(), f"{doc} introduced new URLs: {sorted(after - before)}"
+            before = source_historical_urls(source_context, BASE_COMMIT, doc)
+            additions = REVIEWED_PUBLIC_LINK_ADDITIONS.get(doc, frozenset())
+            unexpected = after - before - additions
+            assert unexpected == set(), f"{doc} introduced unreviewed URLs: {sorted(unexpected)}"
 
 
 class TestHistoricalHonesty:
@@ -358,7 +360,6 @@ class TestHistoricalHonesty:
             assert "was originally <repo_root>" not in text
             assert "the original path was <" not in text
 
-    @requires_repository
     def test_the_readme_milestone_note_does_not_rewrite_history(self) -> None:
         """The links became plain mentions; the records themselves are untouched."""
         text = (REPO / "README.md").read_text(encoding="utf-8")

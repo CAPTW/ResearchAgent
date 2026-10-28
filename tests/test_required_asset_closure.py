@@ -23,13 +23,16 @@ from pathlib import Path
 
 import pytest
 
+from tests.source_tree_context import inspect_source_tree
 from tools import public_content_policy as pcp
 from tools import public_path_scan as pps
 from tests import history_contract_baseline as hcb
 from tests.history_contract_baseline import (
     current_bytes_match,
-    historical_documents,
-    historical_line_contract,
+    source_current_bytes_match,
+    source_historical_documents,
+    source_historical_line_contract,
+    source_historical_policy,
 )
 
 REPO = Path(__file__).resolve().parents[1]
@@ -99,17 +102,6 @@ DESIGN_QA_SOURCE_PIN = {
 }
 
 
-def _git_json(commit: str, path: str) -> dict[str, object]:
-    raw = subprocess.run(
-        ["git", "-C", str(REPO), "show", f"{commit}:{path}"],
-        capture_output=True,
-        check=True,
-    ).stdout
-    loaded = json.loads(raw)
-    assert isinstance(loaded, dict)
-    return loaded
-
-
 def _mapping_delta(before: dict[str, object], after: dict[str, object]) -> dict[str, set[str]]:
     before_keys = set(before)
     after_keys = set(after)
@@ -157,18 +149,14 @@ def _install_history_fixture(
     hcb._commit_mode.cache_clear()
 
 
-def _is_git_checkout() -> bool:
-    return (REPO / ".git").exists()
-
-
-requires_repository = pytest.mark.skipif(
-    not _is_git_checkout(), reason="extracted source carries no Git history"
-)
-
-
 @pytest.fixture(scope="module")
 def policy() -> pcp.ContentPolicy:
     return pcp.load()
+
+
+@pytest.fixture(scope="module", autouse=True)
+def source_context(policy):
+    return inspect_source_tree(REPO, policy)
 
 
 class TestExactPromotionClosure:
@@ -178,10 +166,9 @@ class TestExactPromotionClosure:
         assert policy.dispositions[path] == "public_required_final"
         assert policy.reason_codes[path] == REQUIRED_ASSETS[path]
 
-    @requires_repository
-    def test_exactly_thirteen_paths_were_promoted(self, policy) -> None:
+    def test_exactly_thirteen_paths_were_promoted(self, policy, source_context) -> None:
         """The cap is the point. A fourteenth would be an unreviewed decision."""
-        old = historical_documents(REPO, BASE_COMMIT, "tools/public_content_policy.json")
+        old = source_historical_documents(source_context, BASE_COMMIT, "tools/public_content_policy.json")
         promoted = sorted(
             p
             for p, r in policy.documents.items()
@@ -196,9 +183,8 @@ class TestExactPromotionClosure:
         assert len(promoted) == 13
         assert M1_APPROVED_POLICY_DELTA.isdisjoint(REQUIRED_ASSETS)
 
-    @requires_repository
-    def test_no_unrelated_role_changed(self, policy) -> None:
-        before = historical_documents(REPO, BASE_COMMIT, "tools/public_content_policy.json")
+    def test_no_unrelated_role_changed(self, policy, source_context) -> None:
+        before = source_historical_documents(source_context, BASE_COMMIT, "tools/public_content_policy.json")
         changed = {p for p in policy.documents
                    if before.get(p) != policy.documents[p]} | (set(before) ^ set(policy.documents))
         changed -= CURRENT_AUTHORITY_DOCUMENTS
@@ -208,19 +194,17 @@ class TestExactPromotionClosure:
             f"missing={sorted(expected - changed)} extra={sorted(changed - expected)}"
         )
 
-    @requires_repository
-    def test_the_m0_policy_delta_is_exactly_six_public_and_one_internal(self) -> None:
-        before = _git_json(M0_POLICY_BASE_COMMIT, "tools/public_content_policy.json")
-        m0_after = _git_json(M1_POLICY_PARENT_COMMIT, "tools/public_content_policy.json")
+    def test_the_m0_policy_delta_is_exactly_six_public_and_one_internal(self, source_context) -> None:
+        before = source_historical_policy(source_context, M0_POLICY_BASE_COMMIT, "tools/public_content_policy.json")
+        m0_after = source_historical_policy(source_context, M1_POLICY_PARENT_COMMIT, "tools/public_content_policy.json")
         after = json.loads((REPO / "tools/public_content_policy.json").read_text(encoding="utf-8"))
         _assert_exact_policy_delta(before, m0_after, M0_APPROVED_POLICY_DELTA)
         _assert_exact_policy_delta(before, after, FINAL_APPROVED_POLICY_DELTA)
         _assert_exact_policy_delta(m0_after, after, M1_APPROVED_POLICY_DELTA | CURRENT_PREPARATION_POLICY_DELTA)
 
-    @requires_repository
-    def test_an_eighth_policy_delta_is_rejected(self) -> None:
-        before = _git_json(M0_POLICY_BASE_COMMIT, "tools/public_content_policy.json")
-        m0_after = _git_json(M1_POLICY_PARENT_COMMIT, "tools/public_content_policy.json")
+    def test_an_eighth_policy_delta_is_rejected(self, source_context) -> None:
+        before = source_historical_policy(source_context, M0_POLICY_BASE_COMMIT, "tools/public_content_policy.json")
+        m0_after = source_historical_policy(source_context, M1_POLICY_PARENT_COMMIT, "tools/public_content_policy.json")
         after = json.loads((REPO / "tools/public_content_policy.json").read_text(encoding="utf-8"))
         for section, value in (
             ("documents", "PUBLIC_REQUIRED"),
@@ -268,15 +252,13 @@ class TestRequiredAssetsShip:
     NARROWLY_CORRECTED = {"docs/AGENT_ADAPTERS.md"}
 
     @pytest.mark.parametrize("path", sorted(set(REQUIRED_ASSETS) - NARROWLY_CORRECTED))
-    @requires_repository
-    def test_the_asset_is_byte_identical_to_the_base(self, path: str) -> None:
+    def test_the_asset_is_byte_identical_to_the_base(self, path: str, source_context) -> None:
         """Policy-only repair: twelve of the thirteen were not touched at all."""
-        assert current_bytes_match(REPO, BASE_COMMIT, path)
+        assert source_current_bytes_match(source_context, BASE_COMMIT, path)
 
-    @requires_repository
-    def test_the_one_corrected_asset_changed_only_that_link(self) -> None:
+    def test_the_one_corrected_asset_changed_only_that_link(self, source_context) -> None:
         path = "docs/AGENT_ADAPTERS.md"
-        before, absolute_link_lines = historical_line_contract(REPO, BASE_COMMIT, path)
+        before, absolute_link_lines = source_historical_line_contract(source_context, BASE_COMMIT, path)
         after = (REPO / path).read_text(encoding="utf-8").splitlines()
         assert len(before) == len(after), "the correction must not add or remove lines"
         differing = [
@@ -312,26 +294,27 @@ class TestRequiredAssetsShip:
             assert (REPO / path).is_file(), path
 
 
-@requires_repository
 class TestDesignQaHistoricalPin:
-    def test_the_fixture_records_the_exact_635380c7_git_identity(self) -> None:
+    def test_the_fixture_records_the_exact_635380c7_git_identity(self, source_context) -> None:
         document = json.loads(hcb.FIXTURE.read_text(encoding="utf-8"))
         key = f"{M0_POLICY_BASE_COMMIT}:{DESIGN_QA_PATH}"
         assert document["entries"][key] == DESIGN_QA_SOURCE_PIN
+        # The context API verifies live Git provenance in the canonical checkout
+        # and the same finite pin in shallow development/public distributions.
+        assert hcb.source_entry(
+            source_context, HISTORICAL_DISPOSITION_BASE_COMMIT, DESIGN_QA_PATH
+        ) == DESIGN_QA_SOURCE_PIN
+        if source_context.is_public:
+            source_context.assert_excluded([DESIGN_QA_PATH])
 
-        row = subprocess.run(
-            ["git", "-C", str(REPO), "ls-tree", M0_POLICY_BASE_COMMIT, DESIGN_QA_PATH],
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout.strip()
-        assert row == f"100644 blob {DESIGN_QA_SOURCE_PIN['source_blob']}\t{DESIGN_QA_PATH}"
-
-    def test_current_design_qa_matches_the_explicit_635380c7_pin(self) -> None:
+    def test_current_design_qa_matches_the_explicit_635380c7_pin(self, source_context) -> None:
+        if source_context.is_public:
+            source_context.assert_excluded([DESIGN_QA_PATH])
+            return
         assert current_bytes_match(REPO, HISTORICAL_DISPOSITION_BASE_COMMIT, DESIGN_QA_PATH)
 
-    def test_modified_design_qa_bytes_are_rejected(self) -> None:
-        raw = (REPO / DESIGN_QA_PATH).read_bytes()
+    def test_modified_design_qa_bytes_are_rejected(self, source_context) -> None:
+        raw = b"synthetic mismatching bytes" if source_context.is_public else (REPO / DESIGN_QA_PATH).read_bytes()
         with pytest.raises(AssertionError, match="historical bytes disagree"):
             hcb._verify_payload(DESIGN_QA_SOURCE_PIN, raw + b"\n")
 
@@ -410,33 +393,16 @@ class TestDesignQaHistoricalPin:
             hcb._entries.cache_clear()
             hcb._commit_mode.cache_clear()
 
-    def test_missing_source_blob_fails_closed(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
-        document = json.loads(hcb.FIXTURE.read_text(encoding="utf-8"))
-        key = f"{M0_POLICY_BASE_COMMIT}:{DESIGN_QA_PATH}"
-        document["entries"] = {key: document["entries"][key]}
-        document["entries"][key]["source_blob"] = "0" * 40
-        _install_history_fixture(monkeypatch, tmp_path, document)
-        try:
-            with pytest.raises(AssertionError, match="live historical path/blob mismatch"):
-                hcb._commit_mode(str(REPO), M0_POLICY_BASE_COMMIT)
-        finally:
-            hcb._entries.cache_clear()
-            hcb._commit_mode.cache_clear()
+    # Missing-live-blob rejection runs against an independent synthetic Git
+    # repository in test_source_tree_context, including in public clones.
 
 
 class TestPolicyContractsStillHold:
-    @requires_repository
-    def test_the_boundary_is_still_fail_closed(self, policy) -> None:
-        tracked = [p for p in subprocess.run(
-            ["git", "-C", str(REPO), "ls-tree", "-r", "--name-only", "HEAD"],
-            capture_output=True, text=True, check=True).stdout.split("\n") if p]
-        assert policy.unclassified(tracked) == []
-        assert policy.unresolved(tracked) == []
-        assert policy.stale(tracked) == []
+    def test_the_boundary_is_still_fail_closed(self, policy, source_context) -> None:
+        tracked = list(source_context.paths)
+        source_context.validate_paths(tracked)
         with pytest.raises(pcp.PolicyError, match="no role"):
-            pcp.validate_against(tracked + ["docs/brand-new.md"], policy)
+            source_context.validate_paths(tracked + ["docs/brand-new.md"])
 
     @pytest.mark.parametrize("path,tier", [
         (".env", "fatal"), (".envrc", "fatal"), (".mcp.json", "fatal"),

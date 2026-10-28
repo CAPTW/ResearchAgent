@@ -57,6 +57,17 @@ The receipt test now waits for the initial load's heading focus before selecting
 another control with Enter. Subsequent CI results must be read for the exact
 public commit; the original failed run remains evidence, not a passing baseline.
 
+The reviewed repair was synchronized as public commit `458e194f`, retaining only
+the initial public parent. Its [CI run](https://github.com/CAPTW/ResearchAgent/actions/runs/40650994849)
+passed all 76 frontend test files (1,079 tests) and the production build. Backend
+Python setup, dependency lock/install and Ruff passed, then the mypy verifier
+failed on `import-not-found`; backend tests and startup checks were skipped.
+The browser collector's optional PDF-engine import was reproduced with the exact
+mypy toolchain and that dependency hidden: the original annotation failed, while
+the annotation covering both missing and untyped optional imports passed. The
+runtime still refuses PDF acceptance without the engine. This bounded reproduction
+does not replace the next Linux CI run or establish a clean typecheck.
+
 `tools/package_source_distribution.py` reads the committed Git object tree and
 its committed content policy. `--allow-dirty` exports **committed HEAD only**;
 it does not include pending changes or let an uncommitted policy admit private
@@ -76,9 +87,11 @@ Product icons remain required build assets. Binary files must be format-reviewed
 or excluded; text scanning cannot establish that image pixels or archive members
 are safe. The initial icon review observed the project's simple X glyph; review
 receipts identify the inspected formats and remaining limitations. Historical
-design-intake tests that require excluded screenshots/inventory still need a
-synthetic-fixture migration before claiming an entire archive suite is runnable.
-Do not weaken those checks or distribute the private assets to obtain green CI.
+design-intake receipts remain private historical evidence. The manual-intake
+tests now generate synthetic local PNG/Markdown/JSON inputs and call a local
+validator, rather than reading those personal screenshots or their inventory.
+It calculates completeness from parsed files and reports missing/malformed inputs;
+it does not establish visual quality, external provenance or redistribution rights.
 
 ## Repeatable review
 
@@ -129,14 +142,35 @@ guard does not guarantee detection of every possible secret or private query.
 The complete collection module then passed 30 tests on the final guard; scoped
 Ruff and three-production-file mypy passed. These overlap earlier collection runs.
 
+The subsequent extension error guidance passed 13 protocol/worker tests and a
+synthetic popup browser check of lookup, refusal, exit and unknown-error messages,
+including keyboard refresh. It preserves saved attempts and does not echo raw
+errors or automatically repeat downloads. These results do not resolve the real
+Whale host-lookup failure or qualify a signed-in publisher workflow.
+
 Focused results at this checkpoint: backend collection 20 passed; native bridge
 18 passed; extension protocol/worker 7 passed. One frontend run passed 25 tests
 across collection, Paper Bank and attachment components; a later collection-only
 7-test run checked recovery review fixes. These overlap and are not a full-suite
 total. Frontend TypeScript build passed. Publication audit/boundary checks passed
 161 cases, with later focused scanner and committed-policy rechecks; their counts
-also overlap. The pre-existing frozen `STORAGE_PORTABILITY` document mismatch
-remains a failure, and excluded private design assets limit historical tests.
+also overlap. The storage and review-input operational documents have separate
+provenance pins for their September revisions; the original 416 historical
+baseline entries remain unchanged. The current source passes 192 affected
+policy/history/required-asset checks. A subsequent source-context correction
+validates public document completeness and excluded-file absence in public Git
+checkouts and extracted source. Private development anchors keep their live
+preservation checks; the general missing-history refusal remains unchanged.
+The four affected modules passed 209 tests in each of those three contexts, with
+seven overlapping checks after the final refinement. These are repeated scopes,
+not a whole backend suite or a privacy clearance. Two finite historical policy
+projections retain source provenance without importing private parent history.
+Manual design intake passed 22 focused tests, including an isolated copy containing
+only its validator and tests, with no historical design directory. That repeat
+covers the same 22 cases, not 44 independent tests. PNG checks cover framing/CRC,
+not pixel decoding, and supplied-secret-marker checks are not general privacy
+clearance. The private screenshots and original inventory remain preserved
+outside public source; previously reviewed general design documents still ship.
 The full focused PDF-extraction and browser-collection modules subsequently passed
 57 tests after correcting false missing-file diagnostics for unbound lookup aliases.
 Real missing/changed/invalid originals and attachment errors remain visible. This

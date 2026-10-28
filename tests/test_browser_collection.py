@@ -2,6 +2,7 @@
 import hashlib
 import importlib
 import json
+import sys
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -135,6 +136,13 @@ def test_login_html_partial_and_repaired_pdf_not_saved(collection, kind):
     with pytest.raises(ValueError, match="pdf_invalid_or_incomplete"):
         upload(f)
     assert not list(repository.checked_path(f["job_id"]).parent.glob("*.pdf"))
+
+
+def test_missing_optional_pdf_engine_remains_an_explicit_failure(monkeypatch):
+    # The fulltext extra is optional; this case also runs in a dev-only install.
+    monkeypatch.setitem(sys.modules, "fitz", None)
+    with pytest.raises(ValueError, match="^browser_collection_pdf_engine_unavailable$"):
+        service._validate_pdf(b"%PDF-1.4\n%%EOF")
 
 
 def test_job_capability_rotation_expiry_revocation_and_scope(collection):

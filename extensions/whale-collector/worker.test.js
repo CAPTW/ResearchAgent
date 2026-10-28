@@ -7,7 +7,7 @@ async function harness({ complete = true } = {}) {
   const connection = { base_url: "http://127.0.0.1:8765", job_id: "bc_fixture", token: "x".repeat(43) };
   const item = { item_id: "bci_fixture", candidate: { title: "Synthetic paper", pdf_url: "https://arxiv.org/pdf/2601.00001v1" }, state: "queued", active_attempt_id: null };
   const job = { job_id: connection.job_id, items: [item] };
-  let listener, changed;
+  let listener, changed, nativeFailure;
   const storage = target => ({ async get(key) { return { [key]: structuredClone(target[key]) }; },
     async set(value) { Object.assign(target, structuredClone(value)); }, async remove(key) { delete target[key]; } });
   globalThis.whale = {
@@ -16,6 +16,7 @@ async function harness({ complete = true } = {}) {
       onMessage: { addListener(value) { listener = value; } },
       async sendNativeMessage(_name, message) {
         calls.push(structuredClone(message));
+        if (nativeFailure) throw nativeFailure;
         if (message.command === "transition") {
           if (message.payload.event === "start") { item.state = "downloading"; item.active_attempt_id = message.payload.attempt_id; }
           else item.state = message.payload.event;
@@ -40,7 +41,8 @@ async function harness({ complete = true } = {}) {
     listener(message, { id: "a".repeat(32), url: globalThis.whale.runtime.getURL("popup.html") }, resolve);
   });
   assert.equal((await send({ command: "connect", ticket: JSON.stringify(connection) })).ok, true);
-  return { send, calls, item, job, session, local, changed, downloads };
+  return { send, calls, item, job, session, local, changed, downloads,
+    failNative(error) { nativeFailure = error; } };
 }
 
 test("complete owned download registers ID before bounded native upload and awaits app confirmation", async () => {
@@ -83,4 +85,53 @@ test("unknown dispatch remains blocked until explicit browser-history confirmati
   assert.equal(result.error, "download_dispatch_unknown_check_browser_history");
   assert.equal(h.downloads.size, 0);
   assert.equal((await h.send({ command: "download", item_id: "bci_fixture", confirm_unknown: true })).ok, true);
+});
+
+test("native transport errors preserve saved attempts and connection without dispatching another download", async () => {
+  const failures = [
+    ["Specified native messaging host not found.", "native_host_not_found"],
+    ["Access to the specified native messaging host is forbidden.", "native_host_forbidden"],
+    ["Native host has exited.", "native_host_exited"],
+    ["Failed to start native messaging host.", "native_host_start_failed"],
+    ["Error when communicating with the native messaging host.", "native_host_communication_failed"],
+    ["unexpected synthetic-secret-token", "native_host_unavailable"],
+  ];
+  for (const [raw, expected] of failures) {
+    const h = await harness();
+    h.local.attempts = { "bc_fixture:bci_fixture": { job_id: "bc_fixture", item_id: "bci_fixture", attempt_id: "old", download_id: null } };
+    const before = structuredClone({ session: h.session, local: h.local, job: h.job });
+    h.failNative(new Error(raw));
+    const callsBefore = h.calls.length;
+    assert.deepEqual(await h.send({ command: "download", item_id: "bci_fixture" }), { ok: false, error: expected });
+    assert.deepEqual({ session: h.session, local: h.local, job: h.job }, before);
+    assert.equal(h.calls.length, callsBefore + 1, "failed inspection must not retry the native request");
+    assert.equal(h.downloads.size, 0);
+    h.failNative(null);
+    assert.equal((await h.send({ command: "download", item_id: "bci_fixture" })).error, "download_dispatch_unknown_check_browser_history");
+    assert.equal(h.downloads.size, 0, "restored connection must still require unknown-outcome confirmation");
+  }
+});
+
+test("a host exit during reconciliation leaves the persisted download available for later inspection", async () => {
+  const h = await harness({ complete: false });
+  await h.send({ command: "download", item_id: "bci_fixture" });
+  const before = structuredClone({ session: h.session, local: h.local, job: h.job });
+  h.failNative(new Error("Native host has exited."));
+  assert.deepEqual(await h.send({ command: "reconcile" }), { ok: false, error: "native_host_exited" });
+  assert.deepEqual({ session: h.session, local: h.local, job: h.job }, before);
+  assert.equal(h.downloads.size, 1);
+  h.failNative(null);
+  h.downloads.get(17).state = "complete";
+  assert.equal((await h.send({ command: "reconcile" })).ok, true);
+  assert.equal(h.item.state, "awaiting_confirmation");
+  assert.equal(h.downloads.size, 1, "reconciliation must reuse the saved download ID");
+});
+
+test("invalid connection input is not echoed by the worker and does not replace an existing connection", async () => {
+  const h = await harness();
+  const before = structuredClone(h.session);
+  const result = await h.send({ command: "connect", ticket: 'synthetic-secret-token {"token":' });
+  assert.deepEqual(result, { ok: false, error: "collector_failed" });
+  assert.deepEqual(h.session, before);
+  assert.equal(h.downloads.size, 0);
 });

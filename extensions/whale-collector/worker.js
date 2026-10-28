@@ -1,4 +1,4 @@
-import { HOST, parseConnection, downloadPath, scopedPdf, downloadObservation } from "./protocol.js";
+import { HOST, parseConnection, downloadPath, scopedPdf, downloadObservation, nativeFailureCode, collectorErrorCode, collectorErrorMessage } from "./protocol.js";
 
 const api = globalThis.whale ?? globalThis.chrome;
 // Serialize commands/events so a completion never overtakes its persisted ID.
@@ -9,7 +9,8 @@ function serial(operation) {
   return next;
 }
 async function native(command, connection, data = {}) {
-  const response = await api.runtime.sendNativeMessage(HOST, { command, connection, ...data });
+  const response = await api.runtime.sendNativeMessage(HOST, { command, connection, ...data })
+    .catch(error => { throw Error(nativeFailureCode(error)); });
   if (!response?.ok) throw Error(response?.error ?? "native_host_unavailable");
   return response.data;
 }
@@ -119,7 +120,7 @@ async function execute(message) {
 }
 api.runtime.onMessage.addListener((message, sender, respond) => {
   if (sender.id !== api.runtime.id || sender.url !== api.runtime.getURL("popup.html")) return false;
-  serial(() => execute(message)).then(data => respond({ ok: true, data }), error => respond({ ok: false, error: String(error.message ?? "collector_failed") }));
+  serial(() => execute(message)).then(data => respond({ ok: true, data }), error => respond({ ok: false, error: collectorErrorCode(error) }));
   return true;
 });
 api.downloads.onChanged.addListener(delta => {
@@ -129,5 +130,5 @@ api.downloads.onChanged.addListener(delta => {
     const attempts = await records();
     const binding = Object.values(attempts).find(value => value.download_id === delta.id && value.job_id === connection.job_id);
     if (binding) await reconcile(binding, connection);
-  }).catch(() => notice("연결 또는 저장을 확인하지 못했습니다. 앱과 확장에서 진행 상태를 다시 확인하세요."));
+  }).catch(error => notice(collectorErrorMessage(error)));
 });

@@ -10,8 +10,10 @@ from functools import lru_cache
 from pathlib import Path, PurePosixPath
 from typing import Any, NoReturn, cast
 
+from tests.source_tree_context import SourceTreeContext
+
 FIXTURE = Path(__file__).parent / "fixtures" / "history_contracts" / "history_contracts.json"
-EXPECTED_ENTRIES_SHA256 = "8048c66f98fb845e2a76a5026b11b1b6631f98e6ec699d0da0b30f970757475f"
+EXPECTED_ENTRIES_SHA256 = "f9480cdffae58c58fc9363b7f56816402b58f871eb2e15722ca5d12409a05c9f"
 HEX40 = re.compile(r"[0-9a-f]{40}")
 HEX64 = re.compile(r"[0-9a-f]{64}")
 URL = re.compile(r"https?://[^\s`'\")<>]+")
@@ -19,6 +21,7 @@ USES = {
     "raw_byte_identity",
     "parsed_url_differential",
     "parsed_document_role_map",
+    "parsed_policy_contract",
     "text_line_differential",
 }
 
@@ -112,6 +115,17 @@ def _validate_semantic_shape(key: str, entry: dict[str, Any]) -> None:
             isinstance(path, str) and isinstance(role, str) for path, role in documents.items()
         ):
             _fail(f"invalid document-role payload: {key}")
+    elif use == "parsed_policy_contract":
+        if set(semantic) != {"documents", "dispositions", "reason_codes"}:
+            _fail(f"invalid policy projection fields: {key}")
+        for section in semantic.values():
+            if not isinstance(section, dict) or not all(
+                isinstance(path, str) and isinstance(value, str) for path, value in section.items()
+            ):
+                _fail(f"invalid policy projection mapping: {key}")
+        if not (semantic["documents"].keys() == semantic["dispositions"].keys()
+                == semantic["reason_codes"].keys()):
+            _fail(f"policy projection inventory mismatch: {key}")
     else:
         hashes = semantic.get("line_sha256")
         indexes = semantic.get("absolute_link_line_indexes")
@@ -169,6 +183,10 @@ def _verify_payload(entry: dict[str, Any], raw: bytes) -> None:
     elif use == "parsed_document_role_map":
         actual = json.loads(text)["documents"]
         expected = semantic["documents"]
+    elif use == "parsed_policy_contract":
+        policy = json.loads(text)
+        actual = {section: policy[section] for section in ("documents", "dispositions", "reason_codes")}
+        expected = semantic
     else:
         lines = text.splitlines()
         actual = {
@@ -285,6 +303,29 @@ def current_bytes_match(repo: Path, commit: str, path: str) -> bool:
     return len(raw) == entry["raw_byte_size"] and hashlib.sha256(raw).hexdigest() == entry["raw_sha256"]
 
 
+def retained_document_bytes_match(repo: Path, commit: str, path: str) -> bool:
+    """Preserve original pins and explicitly revised operational contracts.
+
+    Publication exclusion is not a freeze on operational development. The storage
+    guide now describes canonical Journal/receipt data and stopped-source backup;
+    reverting it to the earlier cache-only description would risk data loss. Its
+    review-input guide likewise records actual extraction/receipt provenance.
+    Original provenance remains verified and stored separately from these
+    September revisions. Other paths and arbitrary new edits retain the old gate.
+    """
+    revisions = {
+        "docs/STORAGE_PORTABILITY.md": "db304bbeeb4af3cf477cba7765199952f84c1dd1",
+        "docs/m4-ai-review-packet-synthesis-manifest.md": "d39302a4210a2163daa2443a93572a74f6a2135f",
+    }
+    if path in revisions and commit in {
+        "a24951827095cd7bbd1db4c8fd38f997049df8c1",
+        "d0cd79647d0cc9ff30466e78b8358840999797d7",
+    }:
+        _entry(repo, commit, path)
+        commit = revisions[path]
+    return current_bytes_match(repo, commit, path)
+
+
 def historical_urls(repo: Path, commit: str, path: str) -> frozenset[str]:
     entry = _entry(repo, commit, path)
     if entry["use"] != "parsed_url_differential":
@@ -307,3 +348,63 @@ def historical_line_contract(
         _fail(f"baseline is not a line differential: {commit}:{path}")
     semantic = entry["semantic"]
     return tuple(semantic["line_sha256"]), frozenset(semantic["absolute_link_line_indexes"])
+
+
+def source_entry(context: SourceTreeContext, commit: str, path: str) -> dict[str, Any]:
+    """Use finite frozen provenance only across an explicitly verified public boundary.
+
+    This does not change `_entry`/`_commit_mode`: an arbitrary non-shallow checkout
+    with missing ancestors still fails. Canonical and shallow development trees
+    retain their existing live/fixture verification. Public trees have already
+    proved complete shipping documents, excluded-file absence and no private
+    anchor; they never fetch or import the private history to run these checks.
+    """
+    if not context.is_public:
+        return _entry(context.repo, commit, path)
+    return _resolve_entry(_entries(), commit, path)
+
+
+def source_current_bytes_match(context: SourceTreeContext, commit: str, path: str) -> bool:
+    entry = source_entry(context, commit, path)
+    raw = (context.repo / path).read_bytes()
+    return len(raw) == entry["raw_byte_size"] and hashlib.sha256(raw).hexdigest() == entry["raw_sha256"]
+
+
+def source_historical_documents(context: SourceTreeContext, commit: str, path: str) -> dict[str, str]:
+    entry = source_entry(context, commit, path)
+    if entry["use"] != "parsed_document_role_map":
+        _fail(f"baseline is not a document-role map: {commit}:{path}")
+    return dict(entry["semantic"]["documents"])
+
+
+def source_historical_policy(context: SourceTreeContext, commit: str, path: str) -> dict[str, Any]:
+    entry = source_entry(context, commit, path)
+    if entry["use"] != "parsed_policy_contract":
+        _fail(f"baseline is not a policy projection: {commit}:{path}")
+    return {section: dict(values) for section, values in entry["semantic"].items()}
+
+
+def source_historical_line_contract(
+    context: SourceTreeContext, commit: str, path: str
+) -> tuple[tuple[str, ...], frozenset[int]]:
+    entry = source_entry(context, commit, path)
+    if entry["use"] != "text_line_differential":
+        _fail(f"baseline is not a line differential: {commit}:{path}")
+    return tuple(entry["semantic"]["line_sha256"]), frozenset(entry["semantic"]["absolute_link_line_indexes"])
+
+
+def source_url_paths(context: SourceTreeContext, commit: str) -> frozenset[str]:
+    if not context.is_public and _commit_mode(str(context.repo), commit) == "live":
+        # Preserve the canonical check over every real historical path. A future
+        # promotion must add its frozen contract instead of silently skipping it.
+        return frozenset(_stdout(str(context.repo), "ls-tree", "-r", "--name-only", commit)
+                         .decode("utf-8").splitlines())
+    return frozenset(entry["source_path"] for entry in _commit_entries(commit)
+                     if entry["use"] == "parsed_url_differential")
+
+
+def source_historical_urls(context: SourceTreeContext, commit: str, path: str) -> frozenset[str]:
+    entry = source_entry(context, commit, path)
+    if entry["use"] != "parsed_url_differential":
+        _fail(f"baseline is not a URL differential: {commit}:{path}")
+    return frozenset(entry["semantic"]["urls"])

@@ -1,6 +1,6 @@
 # M0–M5 Native Research Workspace roadmap
 
-## Integrated execution — 2026-10-26
+## Integrated execution — 2026-10-28
 
 The current Owner instruction extends local implementation beyond the historical
 milestone scopes below. Starting authority: clean main `3db71003`. The matching
@@ -22,9 +22,11 @@ document-plan and Journal flows remain the foundation. Current results belong in
 3. Prepare an inspectable public source candidate using existing packaging policy.
    Inspect its full current tree and reachable history/metadata; keep private source
    evidence outside the candidate. The Owner identified CAPTW/ResearchAgent; the
-   public destination was empty on inspection and is now local origin. Prepare a
-   history-free content snapshot; publishing that candidate still needs its scope
-   and public commit identity confirmed. Do not push the private development parents.
+   public destination was empty on initial inspection. The Owner subsequently
+   approved the reviewed separate public history and identity; first and follow-up
+   non-force pushes are recorded in current readiness. Continue reviewed file-only
+   synchronization through the separate public checkout. The canonical fetch remote
+   retains a disabled push URL to prevent exposing private development parents.
 4. After collection recovery is usable, extend common analysis fields and readable
    briefs/comparisons, Dashboard continuity, per-run AI selection and bounded local
    model tasks. Preserve explicit/modeled/missing/inapplicable/incomplete distinctions.
@@ -35,6 +37,17 @@ Each implementation receives affected checks, an independent review, repairs,
 an evidence update and a logical local commit. No live paid calls, new account use,
 scheduled collection, user DB restore, publication or release is implied by local
 implementation. Reuse the existing status and readiness documents for resumability.
+
+Immediate continuation: resolve the optional-import CI failure and qualify the
+public test inputs without importing excluded private design assets. Browser
+collection remains the first research-function objective: local persistence,
+synthetic recovery and analysis handoff exist, but actual Whale native invocation
+still fails before download. New error guidance explains the distinct failures;
+it is not acquisition acceptance. Next real verification depends on diagnosing
+that host lookup through an allowed path, preserving the approved one-paper scope.
+Common brief and next-plan model controls can continue independently; a small local
+inference adapter, period-review denominator semantics, optional 3D and isolated
+experiments remain later implementation work.
 
 Status update: see [current public checkpoint](../OPEN_SOURCE_READINESS.md). The milestone contracts below remain useful; the historical M1-era implementation status in this document is superseded by M2, M3-A, M3-B and the local main adoption.
 

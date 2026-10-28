@@ -16,15 +16,15 @@ from __future__ import annotations
 import json
 import os
 import re
-import subprocess
 from pathlib import Path, PurePosixPath
 
 import pytest
 
 from tools import package_source_distribution as psd
+from tests.source_tree_context import inspect_source_tree
 from tools import public_content_policy as pcp
 from tools import public_path_scan as pps
-from tests.history_contract_baseline import current_bytes_match
+from tests.history_contract_baseline import retained_document_bytes_match
 
 REPO = Path(__file__).resolve().parents[1]
 THREE_NAMED = (
@@ -92,25 +92,6 @@ def _assert_exact_final_public_documents(paths: set[str] | frozenset[str]) -> No
     )
 
 
-def _is_git_checkout() -> bool:
-    return (REPO / ".git").exists()
-
-
-# The source distribution must stay self-testable, and an extracted archive has
-# neither Git history nor the documents this policy deliberately withholds. Those
-# tests skip there rather than fail; everything that can be checked from the
-# shipped bytes alone still runs.
-requires_repository = pytest.mark.skipif(
-    not _is_git_checkout(), reason="extracted source carries no Git history"
-)
-
-
-def tracked() -> list[str]:
-    out = subprocess.run(["git", "-C", str(REPO), "ls-tree", "-r", "--name-only", "HEAD"],
-                         capture_output=True, text=True, check=True).stdout
-    return [p for p in out.split("\n") if p]
-
-
 def _documents_block() -> str:
     """The raw `documents` object, so duplicate keys survive to be counted."""
     raw = (REPO / "tools" / "public_content_policy.json").read_text(encoding="utf-8")
@@ -122,6 +103,11 @@ def policy() -> pcp.ContentPolicy:
     return pcp.load()
 
 
+@pytest.fixture(scope="module", autouse=True)
+def source_context(policy):
+    return inspect_source_tree(REPO, policy)
+
+
 class TestPolicySchemaAndInventory:
     def test_the_policy_parses_and_declares_a_supported_version(self, policy) -> None:
         assert policy.version in pcp.SUPPORTED_VERSIONS
@@ -130,13 +116,12 @@ class TestPolicySchemaAndInventory:
     def test_every_role_used_is_one_of_the_eight(self, policy) -> None:
         assert set(policy.documents.values()) <= set(pcp.ROLES)
 
-    @requires_repository
-    def test_every_tracked_document_has_exactly_one_role(self, policy) -> None:
-        paths = tracked()
+    def test_every_tracked_document_has_exactly_one_role(self, policy, source_context) -> None:
+        paths = list(source_context.paths)
         assert policy.unclassified(paths) == []
         # A dict cannot hold one key twice, so "exactly one" is structural; what
         # needs asserting is that the inventory covers the tree and nothing else.
-        assert policy.stale(paths) == []
+        source_context.validate_paths(paths)
 
     def test_no_path_appears_under_two_roles(self, policy) -> None:
         """`json.loads` would silently keep the last of two duplicate keys."""
@@ -192,25 +177,22 @@ class TestFailsClosed:
         "design/new-design-note.md",
         "docs/nested/deep/new.txt",
     ])
-    @requires_repository
-    def test_an_unlisted_document_is_rejected(self, newcomer: str, policy) -> None:
-        paths = tracked() + [newcomer]
+    def test_an_unlisted_document_is_rejected(self, newcomer: str, policy, source_context) -> None:
+        paths = list(source_context.paths) + [newcomer]
         assert policy.unclassified(paths) == [newcomer]
         with pytest.raises(pcp.PolicyError, match="no role"):
-            pcp.validate_against(paths, policy)
+            source_context.validate_paths(paths)
 
-    @requires_repository
-    def test_a_stale_entry_is_rejected(self, policy) -> None:
-        survivors = [p for p in tracked() if p != "README.md"]
+    def test_a_stale_entry_is_rejected(self, policy, source_context) -> None:
+        survivors = [p for p in list(source_context.paths) if p != "README.md"]
         with pytest.raises(pcp.PolicyError, match="no longer exists"):
-            pcp.validate_against(survivors, policy)
+            source_context.validate_paths(survivors)
 
-    @requires_repository
-    def test_a_new_non_document_keeps_the_existing_classifier(self, policy) -> None:
+    def test_a_new_non_document_keeps_the_existing_classifier(self, policy, source_context) -> None:
         """Only documents are policed here; source files are not swept up."""
-        paths = tracked() + ["app/services/brand_new_module.py"]
+        paths = list(source_context.paths) + ["app/services/brand_new_module.py"]
         assert policy.unclassified(paths) == []
-        pcp.validate_against(paths, policy)
+        source_context.validate_paths(paths)
 
     def test_the_build_refuses_an_unlisted_document(self, monkeypatch, tmp_path) -> None:
         """A policy rejection must reach the caller as a build failure, not a warning."""
@@ -255,10 +237,9 @@ class TestOneAuthority:
         assert pps.surface_of("docs/M3_WORKBENCH.md") is None
         assert pps.surface_of("README.md") == "current_doc"
 
-    @requires_repository
-    def test_scanner_and_packager_agree_on_the_public_set(self, policy) -> None:
-        scanner_public = {p for p in tracked() if pps.surface_of(p) == "current_doc"}
-        packager_public = {p for p in policy.public_documents() if p in set(tracked())}
+    def test_scanner_and_packager_agree_on_the_public_set(self, policy, source_context) -> None:
+        scanner_public = {p for p in list(source_context.paths) if pps.surface_of(p) == "current_doc"}
+        packager_public = {p for p in policy.public_documents() if p in set(list(source_context.paths))}
         # The scanner defers historical records before consulting the policy, so it
         # can only ever be a subset; what must never happen is the reverse.
         assert scanner_public <= packager_public
@@ -311,26 +292,31 @@ class TestConservativeRoles:
             _assert_exact_final_public_documents(unapproved)
 
 
-@requires_repository
 class TestThreeNamedDocuments:
     @pytest.mark.parametrize("path", THREE_NAMED)
     def test_they_are_internal_historical(self, path: str, policy) -> None:
         assert policy.role_of(path) == "INTERNAL_HISTORICAL"
 
     @pytest.mark.parametrize("path", THREE_NAMED)
-    def test_they_still_exist_untouched_in_git(self, path: str) -> None:
+    def test_their_retained_contracts_or_public_exclusion(self, path: str, source_context) -> None:
         """Excluded from the snapshot, not removed from the repository."""
+        if source_context.is_public:
+            source_context.assert_excluded([path])
+            return
         assert (REPO / path).exists()
-        assert current_bytes_match(REPO, THREE_NAMED_BASE_COMMIT, path), (
-            f"{path} was edited; this lane must not"
+        assert retained_document_bytes_match(REPO, THREE_NAMED_BASE_COMMIT, path), (
+            f"{path} differs from its explicitly retained contract"
         )
 
     @pytest.mark.parametrize("path", THREE_NAMED)
     def test_the_scanner_does_not_treat_them_as_public(self, path: str) -> None:
         assert pps.surface_of(path) != "current_doc"
 
-    def test_their_findings_are_deferred_not_resolved(self) -> None:
+    def test_their_findings_are_deferred_not_resolved(self, source_context) -> None:
         """Recorded as outstanding. Neutralization belongs to the disposition lane."""
+        if source_context.is_public:
+            source_context.assert_excluded(THREE_NAMED)
+            return
         total = 0
         for path in THREE_NAMED:
             total += len(pps.scan_text(path, (REPO / path).read_text(encoding="utf-8")))
