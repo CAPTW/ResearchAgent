@@ -4,13 +4,14 @@ XR/AR × ML 문헌을 수집하고, 실제로 확보한 근거를 검토하여 �
 연결하는 개발 중인 로컬 연구 앱입니다. React/Vite, FastAPI, SQLite와 파일
 저장소를 Tauri Windows 호스트에 연결합니다. Docker는 필수가 아닙니다.
 
-## Current development checkpoint — 2026-10-26
+## Current development checkpoint — 2026-10-28
 
 - **Papers / 수집:** Paper Bank의 검색·버전·컬렉션과 snapshot/diff를 유지합니다.
   새 **브라우저에서 논문 수집**은 공식 arXiv 검색, 명시적 후보 선택, Whale
   확장/Native Messaging, 검증한 PDF의 확인·저장 및 중단 재개를 연결하는
   개발 후보입니다. [설정·사용·복구 방법](docs/BROWSER_COLLECTION.md)을 확인하세요.
-  실제 Whale 설치·다운로드 및 인증이 필요한 출판사 사이트는 별도 검증 대상입니다.
+  시험용 Whale에 설치했지만 실제 연결은 `native messaging host not found`로
+  실패했습니다. 실제 다운로드와 인증이 필요한 출판사 사이트는 미검증입니다.
 - **PDF / 분석:** 사용자 선택 PDF 복사본 연결, 페이지별 텍스트 추출과 누락
   표시, 모델 예산에 맞춘 전문·절별 입력 계획, 실행 이력과 저장 결과가 있습니다.
   OCR·표·그림 의미 이해 또는 전체 논문의 과학적 검증을 보장하지 않습니다.
@@ -26,7 +27,7 @@ XR/AR × ML 문헌을 수집하고, 실제로 확보한 근거를 검토하여 �
   성공은 그 실패를 해결한 증거가 아닙니다. 선택형 진단은 loader/import/app
   초기화 구간을 구분하며, 재부팅은 개발의 선행 조건이 아닙니다.
 
-현재 기능은 소스 공개 준비 중인 개발 상태입니다. 안정판 출시, 모든 Provider,
+현재 기능은 별도 이력으로 소스가 공개된 개발 상태입니다. 안정판 출시, 모든 Provider,
 모든 브라우저, 전체 논문 품질, OAuth 또는 public deployment 완료를 뜻하지
 않습니다. 과거 Haiku 발췌 1회와 같은 논문의 Sonnet 추출 전문 1회는 좁은 실행
 증거이며 새 유료 호출을 허가하지 않습니다. 신규 결과와 검사 범위는
@@ -545,14 +546,14 @@ M0-M17 마일스톤 기록과 `docs/audit/` 감사 기록은 저장소에 그대
 
 ## CI merge gating
 
-The repository contains [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) for the M7.5 regression layer. Live GitHub Actions execution is unproven. Historical local automated command-contract proof at `d060383a` was `2991 collected / 2987 passed / 4 skipped`, frontend `27 files / 190 tests`, production build pass. These counts are not current-HEAD results; subsequent validation and its limits are recorded in [current local product status](docs/OPEN_SOURCE_READINESS.md).
+The repository contains [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) for backend and frontend validation. GitHub Actions has run on the separate public history; exact commit results and unresolved failures are recorded in [current validation status](docs/OPEN_SOURCE_READINESS.md). Historical local automated command-contract proof at `d060383a` was `2991 collected / 2987 passed / 4 skipped`, frontend `27 files / 190 tests`, production build pass. Those historical counts are not current-HEAD results.
 
 Merge-gated checks:
 - backend contracts: `uv run pytest`, backend compile sanity, FastAPI startup/OpenAPI sanity
 - frontend contracts: `npm run test`, `npm run build`
 - tracked fixture immutability for `storage/runs`
 
-The backend and frontend validation paths remain independent. Backend tests continue to run against temporary copies of real fixture runs, and CI fails if tracked checked-in fixture files under `storage/runs` are modified.
+The backend and frontend validation paths remain independent. Backend fixtures are synthetic by default and use temporary storage. Private real-run fixtures require an explicit local opt-in and are excluded from public CI. CI also checks that any tracked fixture files under `storage/runs` remain unchanged.
 
 The exact workflow scope, merge gates, and local parity commands are recorded in the internal milestone note `docs/M9_CI_AND_MERGE_GATING.md`, which is retained in the repository but not part of the public source snapshot.
 

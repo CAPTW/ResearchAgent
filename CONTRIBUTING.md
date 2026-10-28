@@ -171,7 +171,7 @@ findings must be zero. Broad `ignore`, `per-file-ignores` and `# noqa` are not a
 ### The mypy debt baseline
 
 Mypy is a gate, but not a cleanliness gate. The tree is classified
-`mypy_debt_baselined`: **574 errors, 20 notes, 594 diagnostics across 71 files** are recorded
+`mypy_debt_baselined`: **559 errors, 20 notes, 579 diagnostics across 69 files** are recorded
 in `tools/mypy_baseline.json`. That is the agreed debt, not an achievement -- this repository
 is **not mypy-clean**, and no change should claim otherwise.
 

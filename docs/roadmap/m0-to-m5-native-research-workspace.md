@@ -38,8 +38,9 @@ an evidence update and a logical local commit. No live paid calls, new account u
 scheduled collection, user DB restore, publication or release is implied by local
 implementation. Reuse the existing status and readiness documents for resumability.
 
-Immediate continuation: resolve the optional-import CI failure and qualify the
-public test inputs without importing excluded private design assets. Browser
+Immediate continuation: resolve the reproduced cross-platform mypy discrepancy
+and qualify the backend suite on the reviewed public tree. The optional PDF import
+and synthetic public test-input corrections have been implemented. Browser
 collection remains the first research-function objective: local persistence,
 synthetic recovery and analysis handoff exist, but actual Whale native invocation
 still fails before download. New error guidance explains the distinct failures;

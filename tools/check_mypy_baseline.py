@@ -16,8 +16,8 @@ that quietly accepts improvement is a verifier that quietly accepts anything.
 
 Text output is parsed rather than a machine format: mypy 1.20.2 exposes only
 `--junit-xml` and a generic `-O/--output FORMAT` with no documented JSON schema, and
-JUnit XML discards the error code. The strict template below parses all 594 current
-records with zero unparsed lines, and any line that does not match is fatal.
+JUnit XML discards the error code. The strict template below requires every
+diagnostic to parse; any line that does not match is fatal.
 """
 
 from __future__ import annotations

@@ -18,6 +18,7 @@ protects (see :mod:`app.repositories.shared_state`).
 from __future__ import annotations
 
 import os
+import sys
 import time
 from contextlib import contextmanager
 from pathlib import Path
@@ -54,7 +55,7 @@ def try_acquire_os_lock(handle: int) -> bool:
     process dies. Returns False when another live owner holds it.
     """
     try:
-        if os.name == "nt":
+        if sys.platform == "win32":
             import msvcrt
 
             os.lseek(handle, 0, os.SEEK_SET)
@@ -70,7 +71,7 @@ def try_acquire_os_lock(handle: int) -> bool:
 
 def release_os_lock(handle: int) -> None:
     try:
-        if os.name == "nt":
+        if sys.platform == "win32":
             import msvcrt
 
             os.lseek(handle, 0, os.SEEK_SET)

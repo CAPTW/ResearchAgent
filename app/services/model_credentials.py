@@ -51,7 +51,7 @@ class _Blob(ctypes.Structure):
 
 
 def _crypt(raw: bytes, identity: str, *, decrypt: bool = False) -> bytes:
-    if not available():
+    if sys.platform != "win32" or not available():
         raise CredentialUnavailable()
     buffer = ctypes.create_string_buffer(raw)
     entropy_buffer = ctypes.create_string_buffer((SCHEMA + ":" + identity).encode("ascii"))

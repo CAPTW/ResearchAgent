@@ -205,7 +205,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("origin")
     parser.add_argument("--parent-window")
     args = parser.parse_args(argv)
-    if os.name == "nt":
+    if sys.platform == "win32":
         import msvcrt
         msvcrt.setmode(sys.stdin.fileno(), os.O_BINARY)
         msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)

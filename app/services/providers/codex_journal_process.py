@@ -9,6 +9,7 @@ from pathlib import Path
 import signal
 import stat
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -133,7 +134,7 @@ class CliRuntime:
 
 def capture(command: list[str], stdin: str, cwd: Path, env: dict[str, str], timeout: float) -> CliExecResult:
     options: dict[str, Any] = {}
-    if os.name == "nt":
+    if sys.platform == "win32":
         options["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
     else:
         options["start_new_session"] = True
@@ -181,7 +182,7 @@ def capture(command: list[str], stdin: str, cwd: Path, env: dict[str, str], time
     def terminate_group() -> None:
         if job is not None:
             job.close()
-        elif os.name != "nt":
+        elif sys.platform != "win32":
             try:
                 getattr(os, "killpg")(proc.pid, getattr(signal, "SIGKILL"))
             except ProcessLookupError:
@@ -189,7 +190,7 @@ def capture(command: list[str], stdin: str, cwd: Path, env: dict[str, str], time
         elif proc.poll() is None:
             proc.kill()  # Assignment failed before input was sent.
     try:
-        if os.name == "nt":
+        if sys.platform == "win32":
             job = WindowsJob(int(getattr(proc, "_handle")))
         for reader in readers:
             reader.start()

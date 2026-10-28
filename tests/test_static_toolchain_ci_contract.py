@@ -38,7 +38,7 @@ SELF_MYPY_FLAGS = (
 )
 SCOPE = ("app", "tests", "tools", "scripts")
 
-# Frozen at the exact incoming target `3dd7fb6b`. This lane may not touch these.
+# Surviving pins from the historical docs/CI-only lane.
 IMMUTABLE = {
     # pyproject.toml and uv.lock were pinned here while every lane was forbidden to touch the
     # manifest. The build-backend authority lane is explicitly authorized to change both, so a
@@ -46,14 +46,16 @@ IMMUTABLE = {
     # Replacing the digest with a new one would recreate the same cross-lane overconstraint, so
     # both are held by property instead -- see TestBuildAuthorityPreservesTheStaticContract
     # below and tests/test_project_build_backend_authority.py.
-    "tools/check_mypy_baseline.py": "1886da52ca00d6a8",
-    "tools/mypy_baseline.json": "a00f277bbb09c735",
+    # The platform correction intentionally changes the reviewed diagnostic inventory.
+    # The verifier's negative tests and exact baseline pins are maintained together in
+    # test_mypy_baseline_verifier.py; a second historical byte pin would contradict them.
     # tests/test_mypy_baseline_verifier.py is deliberately absent: this lane retargets one
     # obsolete parameter in it, and pinning a file inside your own authorized closure is
     # exactly the mistake being corrected there. Its content is asserted by property in
     # TestPredecessorInvariantRetarget instead.
     "tools/public_path_scan.py": "0ff9a0cd21521acb",
-    "tools/package_source_distribution.py": "84a5c98e53079866",
+    # Public-snapshot packaging now evolves under committed-object and exclusion
+    # behaviour tests, as described in TestPredecessorInvariantRetarget below.
     "tests/test_mypy_dual_import_contract.py": "cdec62849f5ae5fc",
     "tests/test_dev_tool_lock_and_ruff_contract.py": "85e3d71beae3b643",
 }
@@ -106,7 +108,7 @@ class TestContributorContract:
 
     def test_the_current_classification_is_stated(self) -> None:
         assert "mypy_debt_baselined" in DOCS
-        for figure in ("574", "20 notes", "594", "71"):
+        for figure in ("559 errors", "20 notes", "579 diagnostics", "69 files"):
             assert figure in DOCS
 
     def test_mypy_clean_is_disclaimed(self) -> None:
@@ -130,7 +132,7 @@ class TestContributorContract:
 class TestCiWorkflow:
     def test_the_active_backend_job_exists(self) -> None:
         assert "backend-contracts:" in CI
-        assert "runs-on: ubuntu-latest" in BACKEND
+        assert "runs-on: ubuntu-24.04" in BACKEND
 
     def test_the_python_authority_is_the_exact_patch(self) -> None:
         assert 'python-version: "3.12.12"' in BACKEND
@@ -226,10 +228,9 @@ class TestPredecessorInvariantRetarget:
     def test_the_containing_assertion_still_exists(self) -> None:
         assert "def test_no_pre_existing_file_was_modified" in self.PREDECESSOR
 
-    # The pin set the predecessor carried before the build-backend authority lane, and the
-    # exact two entries that lane is authorized to retire. Stating both explicitly means the
-    # surviving set is derived, never counted -- a bare count cannot tell "the two obsolete
-    # pins were retired" apart from "two arbitrary pins were dropped".
+    # Retire only the two manifest pins from the build-backend lane and the packager
+    # pin superseded by authorized public-snapshot work. Keep the exact remaining set,
+    # rather than accepting removal of an arbitrary number of pins.
     BASE_PINS = frozenset({
         "pyproject.toml",
         "uv.lock",
@@ -238,10 +239,9 @@ class TestPredecessorInvariantRetarget:
         "tests/test_mypy_dual_import_contract.py",
         "tests/test_dev_tool_lock_and_ruff_contract.py",
     })
-    RETIRED_PINS = frozenset({"pyproject.toml", "uv.lock"})
+    RETIRED_PINS = frozenset({"pyproject.toml", "uv.lock", "tools/package_source_distribution.py"})
 
     @pytest.mark.parametrize("relative,digest", [
-        ("tools/package_source_distribution.py", "84a5c98e53079866"),
         ("tools/public_path_scan.py", "0ff9a0cd21521acb"),
         ("tests/test_mypy_dual_import_contract.py", "cdec62849f5ae5fc"),
         ("tests/test_dev_tool_lock_and_ruff_contract.py", "85e3d71beae3b643"),
@@ -269,7 +269,7 @@ class TestPredecessorInvariantRetarget:
 
     # Renamed in place from test_exactly_six_pins_remain, with strictly stronger semantics:
     # the old assertion checked only that six entries existed and would have accepted any six.
-    def test_the_surviving_pins_are_the_base_set_minus_exactly_the_two_retired(self) -> None:
+    def test_the_surviving_pins_are_the_base_set_minus_the_named_retired(self) -> None:
         assert self.observed_pins() == self.BASE_PINS - self.RETIRED_PINS
 
     def test_no_extra_pin_disappeared(self) -> None:
@@ -435,10 +435,10 @@ class TestBuildAuthorityPreservesTheStaticContract:
 
         baseline = json.loads((REPO / "tools" / "mypy_baseline.json").read_text(encoding="utf-8"))
         assert baseline["classification"] == "mypy_debt_baselined"
-        assert (baseline["error_count"], baseline["note_count"]) == (574, 20)
-        assert (baseline["diagnostic_count"], baseline["affected_file_count"]) == (594, 71)
+        assert (baseline["error_count"], baseline["note_count"]) == (559, 20)
+        assert (baseline["diagnostic_count"], baseline["affected_file_count"]) == (579, 69)
         assert baseline["issues_sha256"] == (
-            "97af8cbde2080f267f930ebba83a3a90c0e81411ebd8223bbe3647ac41ae3504")
+            "4385d8277fd1e8880e7f83e65d2e70947191f209e228867b4d26821c21b1f73e")
         assert baseline["config_digest"] == (
             "cf7054b5eeb41acd50293b845d17eb68aab73820f4a4f7beb7da24bbfc9f01f5")
 
@@ -456,6 +456,7 @@ class TestNegativeMutations:
                 and ".mypy_cache" not in text and "NUL" not in text
                 and "--select ALL" not in text
                 and 'python-version: "3.12.12"' in text
+                and "runs-on: ubuntu-24.04" in text
                 and "${{ runner.temp }}" in text)
 
     @pytest.mark.parametrize("old,new", [
@@ -466,6 +467,7 @@ class TestNegativeMutations:
         ('"${{ runner.temp }}/mypy-verifier-cache"', "NUL"),
         ('python-version: "3.12.12"', 'python-version: "3.12"'),
         ('python-version: "3.12.12"', 'python-version: "3.11"'),
+        ("runs-on: ubuntu-24.04", "runs-on: ubuntu-latest"),
         (LOCK_CHECK, "uv lock"),
         (FROZEN_SYNC, "uv sync --extra dev"),
         ("--explicit-package-bases ", ""),

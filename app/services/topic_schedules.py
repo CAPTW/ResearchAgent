@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import socket
 import sqlite3
+import sys
 import threading
 import time
 from typing import Any
@@ -1225,7 +1226,7 @@ def _process_is_running(pid: int | None) -> bool | None:
         return None
     if pid == os.getpid():
         return True
-    if os.name == "nt":
+    if sys.platform == "win32":
         try:
             import ctypes
         except ImportError:

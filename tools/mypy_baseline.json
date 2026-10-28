@@ -1,5 +1,5 @@
 {
-  "affected_file_count": 70,
+  "affected_file_count": 69,
   "classification": "mypy_debt_baselined",
   "command_arguments": [
     "--config-file",
@@ -18,8 +18,8 @@
     "tools/public_path_scan.py"
   ],
   "config_digest": "cf7054b5eeb41acd50293b845d17eb68aab73820f4a4f7beb7da24bbfc9f01f5",
-  "diagnostic_count": 584,
-  "error_count": 564,
+  "diagnostic_count": 579,
+  "error_count": 559,
   "execution_python": "3.12.12",
   "issues": [
     {
@@ -630,56 +630,6 @@
       "message_sha256": "dba98398c39cd0ff1435335902a01d5f29b460bda4a9b76372949d59895222c1",
       "occurrence_index": 0,
       "path": "app/repositories/artifact_refs.py",
-      "severity": "error"
-    },
-    {
-      "code": "attr-defined",
-      "column": 9,
-      "line": 65,
-      "message": "Module has no attribute \"flock\"",
-      "message_sha256": "bf5edf9537eda6bf22c82f6bf7b0eacba7de9749dfb0d9c31ccf6e786fd1bf9d",
-      "occurrence_index": 0,
-      "path": "app/repositories/file_locks.py",
-      "severity": "error"
-    },
-    {
-      "code": "attr-defined",
-      "column": 29,
-      "line": 65,
-      "message": "Module has no attribute \"LOCK_EX\"",
-      "message_sha256": "519adcbe7be5328f4bf9e68e06dcd67828b2f6f144f36efcc210646a8691061d",
-      "occurrence_index": 0,
-      "path": "app/repositories/file_locks.py",
-      "severity": "error"
-    },
-    {
-      "code": "attr-defined",
-      "column": 45,
-      "line": 65,
-      "message": "Module has no attribute \"LOCK_NB\"",
-      "message_sha256": "7767544166b5c5798fc3d39a4c4e278377f264d4c8db8f0a25fc9c1802de7fa0",
-      "occurrence_index": 0,
-      "path": "app/repositories/file_locks.py",
-      "severity": "error"
-    },
-    {
-      "code": "attr-defined",
-      "column": 13,
-      "line": 81,
-      "message": "Module has no attribute \"flock\"",
-      "message_sha256": "bf5edf9537eda6bf22c82f6bf7b0eacba7de9749dfb0d9c31ccf6e786fd1bf9d",
-      "occurrence_index": 0,
-      "path": "app/repositories/file_locks.py",
-      "severity": "error"
-    },
-    {
-      "code": "attr-defined",
-      "column": 33,
-      "line": 81,
-      "message": "Module has no attribute \"LOCK_UN\"",
-      "message_sha256": "97690edb4336c3346524208bb6126e76da7616515ba1ab8a8b73ba85dce52b40",
-      "occurrence_index": 0,
-      "path": "app/repositories/file_locks.py",
       "severity": "error"
     },
     {
@@ -5475,7 +5425,7 @@
     {
       "code": "arg-type",
       "column": 25,
-      "line": 794,
+      "line": 795,
       "message": "Argument 2 to \"next\" has incompatible type \"None\"; expected \"dict[str, Any]\"",
       "message_sha256": "074bf4649e2ac3be05269dcdc4c50afeb977d7149b9f3947345507d22681a4f4",
       "occurrence_index": 0,
@@ -5485,7 +5435,7 @@
     {
       "code": "return-value",
       "column": 16,
-      "line": 980,
+      "line": 981,
       "message": "Incompatible return value type (got \"ConfiguredSchedulerBackend\", expected \"SchedulerBackend\")",
       "message_sha256": "3bc3811ec3d085e9a4c498ce2c8f74aba210aa0f3cbc8f8cb896060ec02dc4e9",
       "occurrence_index": 0,
@@ -5495,7 +5445,7 @@
     {
       "code": "return-value",
       "column": 16,
-      "line": 991,
+      "line": 992,
       "message": "Incompatible return value type (got \"ConfiguredSchedulerBackend\", expected \"SchedulerBackend\")",
       "message_sha256": "3bc3811ec3d085e9a4c498ce2c8f74aba210aa0f3cbc8f8cb896060ec02dc4e9",
       "occurrence_index": 0,
@@ -5505,7 +5455,7 @@
     {
       "code": "return-value",
       "column": 20,
-      "line": 995,
+      "line": 996,
       "message": "Incompatible return value type (got \"ConfiguredSchedulerBackend\", expected \"SchedulerBackend\")",
       "message_sha256": "3bc3811ec3d085e9a4c498ce2c8f74aba210aa0f3cbc8f8cb896060ec02dc4e9",
       "occurrence_index": 0,
@@ -5515,7 +5465,7 @@
     {
       "code": "return-value",
       "column": 16,
-      "line": 1002,
+      "line": 1003,
       "message": "Incompatible return value type (got \"ConfiguredSchedulerBackend\", expected \"SchedulerBackend\")",
       "message_sha256": "3bc3811ec3d085e9a4c498ce2c8f74aba210aa0f3cbc8f8cb896060ec02dc4e9",
       "occurrence_index": 0,
@@ -5525,7 +5475,7 @@
     {
       "code": "return-value",
       "column": 20,
-      "line": 1006,
+      "line": 1007,
       "message": "Incompatible return value type (got \"ConfiguredSchedulerBackend\", expected \"SchedulerBackend\")",
       "message_sha256": "3bc3811ec3d085e9a4c498ce2c8f74aba210aa0f3cbc8f8cb896060ec02dc4e9",
       "occurrence_index": 0,
@@ -5535,7 +5485,7 @@
     {
       "code": "return-value",
       "column": 16,
-      "line": 1013,
+      "line": 1014,
       "message": "Incompatible return value type (got \"ConfiguredSchedulerBackend\", expected \"SchedulerBackend\")",
       "message_sha256": "3bc3811ec3d085e9a4c498ce2c8f74aba210aa0f3cbc8f8cb896060ec02dc4e9",
       "occurrence_index": 0,
@@ -5545,7 +5495,7 @@
     {
       "code": "return-value",
       "column": 16,
-      "line": 1015,
+      "line": 1016,
       "message": "Incompatible return value type (got \"ConfiguredSchedulerBackend\", expected \"SchedulerBackend\")",
       "message_sha256": "3bc3811ec3d085e9a4c498ce2c8f74aba210aa0f3cbc8f8cb896060ec02dc4e9",
       "occurrence_index": 0,
@@ -5555,7 +5505,7 @@
     {
       "code": "return-value",
       "column": 12,
-      "line": 1022,
+      "line": 1023,
       "message": "Incompatible return value type (got \"ConfiguredSchedulerBackend\", expected \"SchedulerBackend\")",
       "message_sha256": "3bc3811ec3d085e9a4c498ce2c8f74aba210aa0f3cbc8f8cb896060ec02dc4e9",
       "occurrence_index": 0,
@@ -5565,7 +5515,7 @@
     {
       "code": "arg-type",
       "column": 123,
-      "line": 1597,
+      "line": 1598,
       "message": "Argument 6 to \"_monthly_candidate\" has incompatible type \"tzinfo | None\"; expected \"ZoneInfo\"",
       "message_sha256": "ff9c08d59ef3a9934e88a3298dd5cd23442e1a0589c66284907915bc685f78d7",
       "occurrence_index": 0,
@@ -5575,7 +5525,7 @@
     {
       "code": "arg-type",
       "column": 117,
-      "line": 1601,
+      "line": 1602,
       "message": "Argument 6 to \"_monthly_candidate\" has incompatible type \"tzinfo | None\"; expected \"ZoneInfo\"",
       "message_sha256": "ff9c08d59ef3a9934e88a3298dd5cd23442e1a0589c66284907915bc685f78d7",
       "occurrence_index": 0,
@@ -5585,7 +5535,7 @@
     {
       "code": "arg-type",
       "column": 21,
-      "line": 2705,
+      "line": 2706,
       "message": "Argument 2 to \"next\" has incompatible type \"None\"; expected \"dict[str, Any]\"",
       "message_sha256": "074bf4649e2ac3be05269dcdc4c50afeb977d7149b9f3947345507d22681a4f4",
       "occurrence_index": 0,
@@ -5595,7 +5545,7 @@
     {
       "code": "union-attr",
       "column": 37,
-      "line": 3040,
+      "line": 3041,
       "message": "Item \"None\" of \"Any | dict[Any, Any] | None\" has no attribute \"get\"",
       "message_sha256": "e7a7bc095459b8743886304bc1aa91f368c38f6705663cd2f340c805c3a1d08b",
       "occurrence_index": 0,
@@ -5863,7 +5813,7 @@
       "severity": "error"
     }
   ],
-  "issues_sha256": "7ba9a025a668a862e839f6e28706dc220631a518c4fcb34599d82f392b221ce1",
+  "issues_sha256": "4385d8277fd1e8880e7f83e65d2e70947191f209e228867b4d26821c21b1f73e",
   "mypy_version": "1.20.2",
   "note_count": 20,
   "schema": "xrml_mypy_baseline",

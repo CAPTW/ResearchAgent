@@ -68,6 +68,39 @@ the annotation covering both missing and untyped optional imports passed. The
 runtime still refuses PDF acceptance without the engine. This bounded reproduction
 does not replace the next Linux CI run or establish a clean typecheck.
 
+The next reviewed snapshot, source `bfa823d7`, was published non-force as
+`fcebb490`, with only the two preceding public commits as ancestors. All 1,164
+archive files matched public Git bytes and modes. Its
+[CI run](https://github.com/CAPTW/ResearchAgent/actions/runs/40656979547) passed
+the 13 extension tests, 1,079 frontend tests and production build on Node 20.
+Backend setup, lock/install and Ruff passed, but the mypy baseline differed by
+platform; backend regression, PDF and startup checks did not execute. An exact
+Python 3.12.12/mypy 1.20.2 reproduction returned 564 errors/20 notes on Windows
+and 575 errors/20 notes with an explicit Linux typing target. The full difference
+is 16 Windows-API diagnostics added on Linux and five POSIX-API diagnostics absent
+there. This diagnosis is a static target comparison on Windows, not Linux runtime
+verification. The original three CI failures remain preserved.
+
+The affected code now uses direct platform branches, preserving Windows DPAPI,
+file-lock and child-process cleanup behavior. Paired checks on the exact toolchain
+produce identical inventories: 559 errors, 20 notes, 579 diagnostics across 69
+files. Review confirmed only five inapplicable POSIX diagnostics were removed from
+the Windows baseline; 13 existing scheduler diagnostics moved by one source line.
+No new diagnostic, global suppression or fixed Windows-only typing target was
+introduced. This is still a debt baseline, not mypy-clean code.
+
+On Windows, 295 existing native-host, credential, fake-process, locking, scheduler
+and report-transaction tests passed without changing their assertions. The mypy
+verifier (154), packaging (132 and 24) and public-link (49) checks passed. The same
+run exposed five obsolete static-contract assertions; after correcting the reviewed
+runner, diagnostic inventory and expired file pins, that module passed 101 tests.
+The adjacent build-authority module passed 53 tests after retiring its duplicate
+historical verifier/inventory byte pins; maintained verifier and build properties
+remain enforced.
+Whole-core Ruff passed. These are affected local scopes, not a full backend suite
+or actual Provider/browser acceptance. The next public CI must qualify Linux
+runtime behavior and the remaining backend checks.
+
 `tools/package_source_distribution.py` reads the committed Git object tree and
 its committed content policy. `--allow-dirty` exports **committed HEAD only**;
 it does not include pending changes or let an uncommitted policy admit private

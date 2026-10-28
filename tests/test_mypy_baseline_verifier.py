@@ -236,10 +236,10 @@ class TestBaselineStructure:
         assert BASELINE["classification"] == "mypy_debt_baselined"
 
     def test_the_expected_counts_are_exact(self) -> None:
-        assert BASELINE["error_count"] == 574
+        assert BASELINE["error_count"] == 559
         assert BASELINE["note_count"] == 20
-        assert BASELINE["diagnostic_count"] == 594
-        assert BASELINE["affected_file_count"] == 71
+        assert BASELINE["diagnostic_count"] == 579
+        assert BASELINE["affected_file_count"] == 69
 
     def test_counts_reconcile_with_the_issue_array(self) -> None:
         issues = BASELINE["issues"]
@@ -606,8 +606,17 @@ class TestModes:
         monkeypatch.setattr(verifier, "collect", lambda _root: current_diagnostics())
         assert verifier.main([]) == 0
         out = capsys.readouterr().out
-        for token in ("mypy_debt_baselined", "574", "20", "594", "71", "identity matched"):
-            assert token in out
+        lines = [line.strip() for line in out.splitlines()]
+        assert lines == [
+            "classification      mypy_debt_baselined",
+            f"errors              {BASELINE['error_count']}",
+            f"notes               {BASELINE['note_count']}",
+            f"diagnostics         {BASELINE['diagnostic_count']}",
+            f"affected files      {BASELINE['affected_file_count']}",
+            f"issues sha256       {BASELINE['issues_sha256'][:32]}",
+            f"config digest       {BASELINE['config_digest'][:32]}",
+            "baseline identity matched",
+        ]
 
     def test_failure_output_is_bounded_and_leaks_no_local_paths(
         self, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
@@ -647,7 +656,10 @@ class TestCurrentRepositoryContract:
         # table. A byte pin would forbid an authorized change; swapping in a fresh digest would
         # rebuild the same cross-lane overconstraint. Both are asserted by property below and
         # in tests/test_project_build_backend_authority.py instead.
-        ("tools/package_source_distribution.py", "84a5c98e53079866"),
+        # The later public-snapshot work authorizes packager changes. Its committed
+        # blob/mode, dirty-policy and exclusion boundaries are tested by behaviour
+        # in test_source_distribution_packaging.py and test_git_object_packaging.py;
+        # this earlier baseline-only lane must not freeze that product file forever.
         ("tools/public_path_scan.py", "0ff9a0cd21521acb"),
         ("tests/test_mypy_dual_import_contract.py", "cdec62849f5ae5fc"),
         ("tests/test_dev_tool_lock_and_ruff_contract.py", "85e3d71beae3b643"),
@@ -732,14 +744,14 @@ class TestManifestPinReplacedByProperty:
         assert verifier.IMPORT_CODES == ("import-not-found", "import-untyped", "import")
         assert all(i.get("code") not in verifier.IMPORT_CODES for i in BASELINE["issues"])
 
-    def test_the_baseline_file_is_byte_identical(self) -> None:
+    def test_the_baseline_file_matches_the_reviewed_platform_correction(self) -> None:
         assert hashlib.sha256(BASELINE_PATH.read_bytes()).hexdigest() == (
-            "c31eba464de4e1d252d3dc62cb9443617d1153e2a9a3c925cffd27d86320eb4b")
+            "5a2293845942d783196e3c80f72db7dfa602fa462236d35703351e407ab0aac2")
 
     def test_the_baseline_identity_fields_are_unchanged(self) -> None:
         assert BASELINE["classification"] == "mypy_debt_baselined"
         assert BASELINE["issues_sha256"] == (
-            "218c61d3099f1b6ce67ce606a0436f6353be6644d55bf9c1eecc1bf514286b59")
+            "4385d8277fd1e8880e7f83e65d2e70947191f209e228867b4d26821c21b1f73e")
         assert BASELINE["config_digest"] == (
             "cf7054b5eeb41acd50293b845d17eb68aab73820f4a4f7beb7da24bbfc9f01f5")
         assert verifier.compute_config_digest(REPO) == BASELINE["config_digest"]

@@ -13,6 +13,7 @@ import queue
 import signal
 import stat
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -53,7 +54,7 @@ class CapturedConversation:
 def capture(command: list[str], request_text: str, model: str, cwd: Path,
             environment: dict[str, str], timeout_seconds: float) -> CapturedConversation:
     options: dict[str, Any] = {}
-    if os.name == "nt":
+    if sys.platform == "win32":
         options["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
     else:
         options["start_new_session"] = True
@@ -74,7 +75,7 @@ def capture(command: list[str], request_text: str, model: str, cwd: Path,
     def terminate() -> None:
         if job is not None:
             job.close()
-        elif os.name != "nt":
+        elif sys.platform != "win32":
             try:
                 getattr(os, "killpg")(proc.pid, getattr(signal, "SIGKILL"))
             except ProcessLookupError:
@@ -148,7 +149,7 @@ def capture(command: list[str], request_text: str, model: str, cwd: Path,
                 send(line(conversation.next_request))
 
     try:
-        if os.name == "nt":
+        if sys.platform == "win32":
             job = WindowsJob(int(getattr(proc, "_handle")))
         for thread in threads:
             thread.start()
