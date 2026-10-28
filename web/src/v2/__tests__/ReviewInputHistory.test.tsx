@@ -64,8 +64,11 @@ it("selects registered nonempty packet components only after explicit keyboard c
   fireEvent.click(screen.getByText("검토 입력·결과 이력"));
   fireEvent.click(await screen.findByRole("button", { name: /입력·결과 열기/ }));
   const choose = await screen.findByRole("button", { name: "보고서 입력에 이 기록 선택" });
+  await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("heading", { name: "보존된 검토 입력과 결과" })));
   expect(onSelectForReport).not.toHaveBeenCalled();
-  choose.focus(); await userEvent.setup().keyboard("{Enter}");
+  choose.focus();
+  expect(document.activeElement).toBe(choose);
+  await userEvent.setup().keyboard("{Enter}");
   expect(onSelectForReport).toHaveBeenCalledExactlyOnceWith({ receipt_id: "receipt-one", component_ids: ["/evidence_spans/0/text", "/selected_text_excerpts/0/text"] });
   expect(vi.mocked(api.fetchJson).mock.calls.every(([, options]) => !options?.method || options.method === "GET")).toBe(true);
 });
@@ -87,6 +90,10 @@ it("shows only frozen V4 context and lets the preserved body flow into report se
   vi.mocked(api.fetchJson).mockImplementation(async path => (path.includes("?") ? list : saved) as never);
   render(<ReviewInputHistory topicId="topic one" paperVersionId="version/one" openReceipt={{ receiptId: "receipt-one", revision: 1 }} onSelectForReport={onSelectForReport}/>);
   const receipt = await screen.findByRole("region", { name: "선택한 검토 입력·결과" });
+  // The receipt moves focus in an effect after its asynchronous load. Wait for
+  // that initial focus before sending keyboard input to another control.
+  const receiptHeading = within(receipt).getByRole("heading", { name: "보존된 검토 입력과 결과" });
+  await waitFor(() => expect(document.activeElement).toBe(receiptHeading));
   const context = within(receipt).getByRole("region", { name: "보존된 연구 맥락" });
   expect(within(context).getByText("저장된 주제 제목: Frozen topic title")).toBeTruthy();
   expect(within(context).getByText("연구 주제: Frozen research question")).toBeTruthy();
@@ -102,7 +109,9 @@ it("shows only frozen V4 context and lets the preserved body flow into report se
   expect(within(receipt).queryByText(/12,000자 기본 한도/)).toBeNull();
   const choose = within(receipt).getByRole("button", { name: "보고서 입력에 이 기록 선택" });
   expect(choose).toHaveProperty("disabled", false);
-  choose.focus(); await userEvent.setup().keyboard("{Enter}");
+  choose.focus();
+  expect(document.activeElement).toBe(choose);
+  await userEvent.setup().keyboard("{Enter}");
   expect(onSelectForReport).toHaveBeenCalledExactlyOnceWith({ receipt_id: "receipt-one", component_ids: ["/evidence_spans/0/text"] });
   expect(api.fetchJson).toHaveBeenCalledTimes(2);
   expect(vi.mocked(api.fetchJson).mock.calls.every(([, options]) => !options?.method || options.method === "GET")).toBe(true);
@@ -294,10 +303,14 @@ it.each(["FIXTURE_SYNTHETIC", "PROVIDER_RESPONSE", "MANUAL_IMPORT_UNVERIFIED"].f
   expect(within(receipt).queryByText("보존된 선택 발췌 없음")).toBeNull();
   expect(JSON.parse(within(receipt).getByLabelText("보존된 검토 결과 JSON").textContent!).novelty_signal).toBe("NOT_ASSESSED");
   expect(within(receipt).getByText(decoding === "UTF8_STRICT" ? /읽기: UTF-8 엄격 검증/ : /읽기: UTF-8 BOM 허용·엄격 검증/)).toBeTruthy();
+  // Finish the initial receipt focus before moving it for keyboard selection.
+  await waitFor(() => expect(document.activeElement).toBe(within(receipt).getByRole("heading", { name: "보존된 검토 입력과 결과" })));
   expect(onSelectForReport).not.toHaveBeenCalled();
   const choose = within(receipt).getByRole("button", { name: "보고서 입력에 이 기록 선택" });
   expect(choose).toHaveProperty("disabled", false);
-  choose.focus(); await userEvent.setup().keyboard("{Enter}");
+  choose.focus();
+  expect(document.activeElement).toBe(choose);
+  await userEvent.setup().keyboard("{Enter}");
   expect(onSelectForReport).toHaveBeenCalledExactlyOnceWith({ receipt_id: "receipt-one", component_ids: ["/evidence_spans/0/text"] });
 });
 

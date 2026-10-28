@@ -2,9 +2,11 @@
 
 This is development source, not a stable release or a scientific-quality claim.
 The local `main` lineage starts this preparation at `3db71003e9aae6c2709c3fc6cfc820716b741c94`.
-The candidate manifest identifies the exact later commit and byte hashes that
-were actually packaged. No GitHub publication, push, release or deployment has
-been performed by this preparation.
+The private candidate manifest identifies the exact source and byte hashes that
+were packaged. The Owner-approved snapshot was published to `main` as the
+parentless public commit `720565fc480a6bc28cc6238c23912f5e5a770e6f` on 2026-10-26
+UTC (2026-10-27 in Korea). Its 1,161 files matched the reviewed archive bytes and
+modes. This was a normal non-force push; no release or deployment was performed.
 
 ## Hosting and history
 
@@ -13,8 +15,8 @@ as the intended destination. Read-only inspection on 2026-10-26 confirmed that
 it is **public**, with default branch `main` and no remote refs, branches, tags,
 Issues, PRs, Releases, Actions runs or artifacts at inspection time. Discussions
 are disabled; the Wiki remote returned not found. Repository size was zero.
-The local `origin` now names that exact repository. No push, publication, release
-or deployment occurred. No remote LFS references were found in the empty ref set;
+That initial inspection preceded the approved first push. No remote LFS
+references were found in the then-empty ref set;
 GitHub-internal unreachable storage cannot be inspected by these APIs.
 
 These are point-in-time observations, not an enduring guarantee. Recheck refs
@@ -27,14 +29,13 @@ reports, archives and private development records. Current-file exclusions and
 repository or a clean branch inside it is not an approved privacy boundary.
 Original history and local evidence are retained.
 
-The prepared source archive contains no `.git` directory or parent history.
-After content and build review, the Owner can choose either:
-
-- a confirmed existing destination whose reachable refs and hosted content have
-  also been reviewed, using ordinary non-force synchronization where suitable;
-- a separately maintained public source snapshot, keeping development history
-  private and importing reviewed file content without merging private parents,
-  copying `.git`, pushing all refs, or restoring private commit metadata.
+The Owner selected a separately maintained public source snapshot. The reviewed
+archive contained no `.git` directory or parent history. Later updates import
+reviewed file content into that public repository and retain only its public
+parent chain. Do not merge private parents, copy `.git`, push all development
+refs or restore private commit metadata. The private development checkout has a
+local disabled push URL; ordinary public synchronization uses its separate
+checkout and verifies the remote parent before each non-force push.
 
 Creating a destination, changing visibility, rewriting canonical history,
 force-pushing or deleting remote refs requires the corresponding explicit Owner
@@ -42,6 +43,19 @@ choice. Repository/issue URLs are now recorded in Python package metadata. A mon
 private security-reporting channel still needs to be selected or confirmed.
 
 ## Local candidate boundary
+
+The first public [CI run](https://github.com/CAPTW/ResearchAgent/actions/runs/40347030351)
+failed. Python setup could not find the pinned 3.12.12 runtime for Ubuntu 26.04,
+so backend checks did not run. The backend runner now targets Ubuntu 24.04,
+which has an [official build for that exact Python version](https://github.com/actions/python-versions/releases/tag/3.12.12-18393146713).
+The Python/mypy toolchain and existing error inventory are preserved. The
+packaging tool's existing diagnostic is relocated in the baseline after the
+publication exclusions moved its source line; this is not a clean typecheck.
+Frontend tests recorded 1,078 passed and
+one failed keyboard-selection assertion; its production build was skipped.
+The receipt test now waits for the initial load's heading focus before selecting
+another control with Enter. Subsequent CI results must be read for the exact
+public commit; the original failed run remains evidence, not a passing baseline.
 
 `tools/package_source_distribution.py` reads the committed Git object tree and
 its committed content policy. `--allow-dirty` exports **committed HEAD only**;

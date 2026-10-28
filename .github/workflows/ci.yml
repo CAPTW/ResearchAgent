@@ -18,7 +18,9 @@ permissions:
 jobs:
   backend-contracts:
     name: backend-contracts
-    runs-on: ubuntu-latest
+    # Python 3.12.12 has an official setup-python build for 24.04, but not
+    # 26.04. Keep the runner compatible with the exact mypy toolchain below.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Check out repository

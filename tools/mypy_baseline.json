@@ -5855,7 +5855,7 @@
     {
       "code": "union-attr",
       "column": 32,
-      "line": 647,
+      "line": 660,
       "message": "Item \"None\" of \"Path | None\" has no attribute \"name\"",
       "message_sha256": "ab8c9be467cb8c239e2912eccfd5b0bbb3e75d3d6f027311b3e027ba5ce4a29f",
       "occurrence_index": 0,
@@ -5863,7 +5863,7 @@
       "severity": "error"
     }
   ],
-  "issues_sha256": "2e31f87219d0ad5b066c05bd0f54d2407e87c7e61020e951bec41cc896bc8b01",
+  "issues_sha256": "7ba9a025a668a862e839f6e28706dc220631a518c4fcb34599d82f392b221ce1",
   "mypy_version": "1.20.2",
   "note_count": 20,
   "schema": "xrml_mypy_baseline",
